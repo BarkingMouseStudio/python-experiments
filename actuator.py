@@ -17,12 +17,15 @@ def normalize(x, mn, mx):
 def denormalize(x, mn, mx):
     return (x * (mx - mn)) + mn
 
-def connect(mn, mx, N_src, N_snk):
-    S = SynapseGroup(N_src, N_snk)
-    weights = np.random.rand(N_src.size, N_snk.size).astype(floatX)
-    weights = denormalize(weights, mn, mx)
-    S.W.set_value(weights)
-    return S
+def connect(N_src, N_snk, mn, mx):
+    stdev = (mx - mn) / 3.0 # +-3 sigmas
+    mean = (abs(mx) - abs(mn)) / 2.0
+
+    synapse_group = SynapseGroup(N_src, N_snk, mn, mx)
+    weight = np.random.randn(N_src.size, N_snk.size).astype(floatX) * stdev + mean
+    synapse_group.weight.set_value(weight)
+    synapse_group.delay = 2
+    return synapse_group
 
 class Actuator:
 
@@ -32,8 +35,8 @@ class Actuator:
         dt = 1.0 / 1000.0 # 1 ms
 
         self.noise_rate_ms = 5.0 * dt
-        self.weight_min = -4.0
         self.weight_max = 4.0
+        self.weight_min = -4.0
         self.ticks_per_frame = 20
         self.now = 0
 
@@ -41,7 +44,7 @@ class Actuator:
         self.elbow_rot_input = ScalarPopulation(NeuronGroup(100), -180, 180)
         self.shoulder_vel_input = ScalarPopulation(NeuronGroup(100), -5, 5)
         self.elbow_vel_input = ScalarPopulation(NeuronGroup(100), -5, 5)
-        self.target_dir_input = ScalarPopulation(NeuronGroup(100), -5, 5)
+        self.target_dir_input = ScalarPopulation(NeuronGroup(100), -180, 180)
         self.shoulder_output = ScalarPopulation(NeuronGroup(100), -5, 5)
         self.elbow_output = ScalarPopulation(NeuronGroup(100), -5, 5)
 
@@ -53,10 +56,10 @@ class Actuator:
 
     def connect_many(self, N_src, *args):
         for N_snk in args:
-            S_inh = connect(self.weight_min, 0.0, N_src, N_snk)
-            S_exc = connect(0.0, self.weight_max, N_src, N_snk)
-            self.synapse_groups.append(S_inh)
+            S_exc = connect(N_src, N_snk, 0.0, self.weight_max)
+            S_inh = connect(N_src, N_snk, self.weight_min, 0.0)
             self.synapse_groups.append(S_exc)
+            self.synapse_groups.append(S_inh)
 
     def tick(self, is_training):
         noise_rate_ms = self.noise_rate_ms if is_training else 0.0
@@ -71,7 +74,6 @@ class Actuator:
             self.elbow_output.tick(self.now, noise_rate_ms)
 
             for synapse_group in self.synapse_groups:
-                synapse_group.set_training(is_training)
-                synapse_group.tick(self.now)
+                synapse_group.tick(self.now, is_training, not is_training)
 
             self.now += 1

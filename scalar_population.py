@@ -17,7 +17,7 @@ class ScalarPopulation:
 
     def __init__(self, N, mn, mx):
         self.N = N
-        self.encoding = COMEstimator(self.N.size, 3.0, 3.0)
+        self.encoding = COMEstimator(self.N.size, 2.0, 3.0)
         self.output_value = None
         self.input_value = None
         self.err = None
@@ -25,7 +25,7 @@ class ScalarPopulation:
         self.max = mx
 
     def tick(self, now, noise_rate_ms):
-        if noise_rate_ms > 0.0:
+        if noise_rate_ms != 0.0:
             input_vec = (np.random.rand(self.N.size) < noise_rate_ms).astype(floatX) * 125.0
         else:
             input_vec = np.zeros(self.N.size).astype(floatX)

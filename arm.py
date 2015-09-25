@@ -1,5 +1,6 @@
 import math
 import random
+import numpy as np
 
 from panda3d.core import NodePath
 
@@ -8,7 +9,7 @@ from actuator import Actuator
 def get_target_direction(direction):
     direction.normalize()
     angle = math.atan2(direction.z, direction.x)
-    return angle
+    return math.degrees(angle)
 
 def get_angle(angle):
     while angle > 180.0:
@@ -59,7 +60,7 @@ class Arm:
         model_effector.setScale(0.5, 0.5, 0.5)
 
         self.actuator = Actuator()
-        self.home_position = [0, -45, 45, -90, 90, -180, 180]
+        self.home_position = [0, -45, 45, -90, 90]
 
         self.interval_mode = 1 # start resting
         self.interval_count = 0
@@ -68,10 +69,20 @@ class Arm:
         self.training_interval_duration = 0.02
         self.resting_inteval_duration = 0.05
 
-        self.training_duration = 3 * 60.0
-
         self.prev_shoulder_rot = None
         self.prev_elbow_rot = None
+        self.shoulder_rot_input = None
+        self.elbow_rot_input = None
+        self.shoulder_vel_input = None
+        self.elbow_vel_input = None
+        self.target_dir_input = None
+        self.shoulder_output = None
+        self.elbow_output = None
+
+        self.is_training = True
+
+    def toggle_training(self):
+        self.is_training = not self.is_training
 
     def set_home_position(self):
         self.shoulder_pivot.set_r(random.choice(self.home_position))
@@ -115,6 +126,9 @@ class Arm:
         self.target_dir_input = get_target_direction(self.end_effector.get_pos(self.arm_pivot) - prev_end_effector_pos)
 
     def train(self, dt):
+        self.prev_shoulder_rot = None
+        self.prev_elbow_rot = None
+
         if self.interval_mode == 0: # training interval
             self.interval_train()
 
@@ -125,13 +139,13 @@ class Arm:
                 self.interval_mode = 1
 
         if self.interval_mode == 1: # resting interval
-            self.actuator.shoulder_rot_input.input_value = None
-            self.actuator.elbow_rot_input.input_value = None
-            self.actuator.shoulder_vel_input.input_value = None
-            self.actuator.elbow_vel_input.input_value = None
-            self.actuator.target_dir_input.input_value = None
-            self.actuator.shoulder_output.input_value = None
-            self.actuator.elbow_output.input_value = None
+            self.shoulder_rot_input = None
+            self.elbow_rot_input = None
+            self.shoulder_vel_input = None
+            self.elbow_vel_input = None
+            self.target_dir_input = None
+            self.shoulder_output = None
+            self.elbow_output = None
 
             if self.interval_time < self.resting_inteval_duration:
                 self.interval_time += dt
@@ -148,15 +162,23 @@ class Arm:
 
         self.actuator.tick(True)
 
+        print (self.actuator.shoulder_rot_input.err, self.actuator.elbow_rot_input.err, self.actuator.shoulder_vel_input.err, self.actuator.elbow_vel_input.err, self.actuator.target_dir_input.err, self.actuator.shoulder_output.err, self.actuator.elbow_output.err)
+
     def evaluate(self):
+        curr_shoulder_rot = get_angle(self.shoulder_pivot.get_r())
+        curr_elbow_rot = get_angle(self.elbow_pivot.get_r())
+
         if self.prev_shoulder_rot is None or self.prev_elbow_rot is None:
-            self.prev_shoulder_rot = get_angle(self.shoulder_pivot.get_r())
-            self.prev_elbow_rot = get_angle(self.elbow_pivot.get_r())
+            self.shoulder_pivot.set_r(0.0)
+            self.elbow_pivot.set_r(0.0)
+
+            self.prev_shoulder_rot = curr_shoulder_rot
+            self.prev_elbow_rot = curr_elbow_rot
 
         self.actuator.shoulder_rot_input.input_value = get_angle(self.shoulder_pivot.get_r())
         self.actuator.elbow_rot_input.input_value = get_angle(self.elbow_pivot.get_r())
-        self.actuator.shoulder_vel_input.input_value = get_angle(self.shoulder_pivot.get_r()) - self.prev_shoulder_rot
-        self.actuator.elbow_vel_input.input_value = get_angle(self.elbow_pivot.get_r()) - self.prev_elbow_rot
+        self.actuator.shoulder_vel_input.input_value = curr_shoulder_rot - self.prev_shoulder_rot
+        self.actuator.elbow_vel_input.input_value = curr_elbow_rot - self.prev_elbow_rot
         self.actuator.target_dir_input.input_value = get_target_direction(self.target.get_pos(self.arm_pivot) - self.end_effector.get_pos(self.arm_pivot))
 
         self.actuator.tick(False)
@@ -164,17 +186,22 @@ class Arm:
         self.shoulder_output = self.actuator.shoulder_output.output_value
         self.elbow_output = self.actuator.elbow_output.output_value
 
+        print (self.actuator.shoulder_rot_input.err, self.actuator.elbow_rot_input.err, self.actuator.shoulder_vel_input.err, self.actuator.elbow_vel_input.err, self.actuator.target_dir_input.err)
+
         if self.shoulder_output:
             self.rotate_shoulder(self.shoulder_output)
         if self.elbow_output:
             self.rotate_elbow(self.elbow_output)
 
-        self.prev_shoulder_rot = get_angle(self.shoulder_pivot.get_r())
-        self.prev_elbow_rot = get_angle(self.elbow_pivot.get_r())
+        self.prev_shoulder_rot = curr_shoulder_rot
+        self.prev_elbow_rot = curr_elbow_rot
 
     def tick(self, dt):
-        if globalClock.get_frame_time() < self.training_duration:
+        if self.is_training:
             self.train(dt)
-            print globalClock.get_frame_time(), globalClock.get_real_time()
+
+            # save weights
+            for i, synapse_group in enumerate(self.actuator.synapse_groups):
+                np.savetxt('weights_%d.out' % i, synapse_group.weight.get_value(), delimiter=',')
         else:
             self.evaluate()

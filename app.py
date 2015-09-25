@@ -1,5 +1,7 @@
 from __future__ import division
 
+import sys
+
 from arm import Arm
 from direct.showbase.ShowBase import ShowBase
 
@@ -28,6 +30,9 @@ class App(ShowBase):
 
         self.arm = Arm()
         self.arm.arm_pivot.reparent_to(self.render)
+
+        self.accept('escape', sys.exit)
+        self.accept('x', self.arm.toggle_training)
 
         self.taskMgr.add(self.update, 'update')
 
