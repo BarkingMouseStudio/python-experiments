@@ -22,9 +22,9 @@ def connect(N_src, N_snk, mn, mx):
     mean = (abs(mx) - abs(mn)) / 2.0
 
     synapse_group = SynapseGroup(N_src, N_snk, mn, mx)
-    weight = np.random.randn(N_src.size, N_snk.size).astype(floatX) * stdev + mean
+    weight = np.clip(np.random.randn(N_src.size, N_snk.size).astype(floatX) * stdev + mean, mn, mx)
     synapse_group.weight.set_value(weight)
-    synapse_group.delay = 2
+    synapse_group.delay = 1
     return synapse_group
 
 class Actuator:
@@ -64,6 +64,8 @@ class Actuator:
     def tick(self, is_training):
         noise_rate_ms = self.noise_rate_ms if is_training else 0.0
 
+        err_sum = 0.0
+
         for i in range(0, self.ticks_per_frame):
             self.shoulder_rot_input.tick(self.now, noise_rate_ms)
             self.elbow_rot_input.tick(self.now, noise_rate_ms)
@@ -76,4 +78,25 @@ class Actuator:
             for synapse_group in self.synapse_groups:
                 synapse_group.tick(self.now, is_training, not is_training)
 
+            err = 0.0
+            err += self.shoulder_rot_input.err
+            err += self.elbow_rot_input.err
+            err += self.shoulder_vel_input.err
+            err += self.elbow_vel_input.err
+            err += self.target_dir_input.err
+            err += self.shoulder_output.err
+            err += self.elbow_output.err
+            err_sum += math.pow(err, 2)
+
             self.now += 1
+
+        # clear input
+        self.shoulder_rot_input.input_value = None
+        self.elbow_rot_input.input_value = None
+        self.shoulder_vel_input.input_value = None
+        self.elbow_vel_input.input_value = None
+        self.target_dir_input.input_value = None
+        self.shoulder_output.input_value = None
+        self.elbow_output.input_value = None
+
+        self.err_mse = err_sum / self.ticks_per_frame

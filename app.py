@@ -6,7 +6,7 @@ from arm import Arm
 from direct.showbase.ShowBase import ShowBase
 
 from panda3d import bullet
-from panda3d.core import Vec3, Point3, PerspectiveLens, WindowProperties, ClockObject
+from panda3d.core import Point2, PerspectiveLens, ClockObject, DirectionalLight
 
 def create_lens(aspect_ratio):
     lens = PerspectiveLens()
@@ -22,7 +22,12 @@ class App(ShowBase):
         globalClock.set_mode(ClockObject.MNonRealTime)
         globalClock.set_dt(0.02) # 20ms per frame
 
-        self.toggleWireframe()
+        # self.toggleWireframe()
+        self.disableMouse() # just disables camera movement with mouse
+
+        light = DirectionalLight('light')
+        light_np = self.render.attach_new_node(light)
+        self.render.set_light(light_np)
 
         self.cam.set_pos(0, -20, 0)
         self.cam.look_at(0, 0, 0)
@@ -36,6 +41,12 @@ class App(ShowBase):
 
         self.taskMgr.add(self.update, 'update')
 
+    def get_mouse_pos(self):
+        if self.mouseWatcherNode.hasMouse():
+            return self.mouseWatcherNode.getMouse()
+        else:
+            return Point2()
+
     def update(self, task):
-        self.arm.tick(globalClock.get_dt())
+        self.arm.tick(globalClock.get_dt(), self.get_mouse_pos())
         return task.cont

@@ -20,7 +20,7 @@ class ScalarPopulation:
         self.encoding = COMEstimator(self.N.size, 2.0, 3.0)
         self.output_value = None
         self.input_value = None
-        self.err = None
+        self.err = 0.0
         self.min = mn
         self.max = mx
 
@@ -43,7 +43,6 @@ class ScalarPopulation:
             self.output_value = None
 
         if self.input_value is not None and self.output_value is not None:
-            input_norm = normalize(self.input_value, self.min, self.max)
             self.err = abs(input_norm - output_norm)
         else:
-            self.err = None
+            self.err = 0.0
