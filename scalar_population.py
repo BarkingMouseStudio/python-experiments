@@ -17,7 +17,7 @@ class ScalarPopulation:
 
     def __init__(self, N, mn, mx):
         self.N = N
-        self.encoding = COMEstimator(self.N.size, 2.0, 3.0)
+        self.encoding = COMEstimator(self.N.size, self.N.size * 0.02, 3.0)
         self.output_value = None
         self.input_value = None
         self.err = 0.0
