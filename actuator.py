@@ -24,7 +24,6 @@ def connect(N_src, N_snk, mn, mx):
     synapse_group = SynapseGroup(N_src, N_snk, mn, mx)
     weight = np.clip(np.random.randn(N_src.size, N_snk.size).astype(floatX) * stdev + mean, mn, mx)
     synapse_group.weight.set_value(weight)
-    synapse_group.delay = 1
     return synapse_group
 
 class Actuator:
@@ -53,6 +52,18 @@ class Actuator:
         self.connect_many(self.shoulder_vel_input.N, self.shoulder_output.N, self.elbow_output.N)
         self.connect_many(self.elbow_vel_input.N, self.shoulder_output.N, self.elbow_output.N)
         self.connect_many(self.target_dir_input.N, self.shoulder_output.N, self.elbow_output.N)
+
+    def load_weights(self, load_path):
+        # self.synapse_groups[0].weight.set_value(weights['arr_0'])
+        with np.load(load_path) as weights:
+            for f in weights.files:
+                i = int(f)
+                weight = weights[f]
+                self.synapse_groups[i].weight.set_value(weight)
+
+    def save_weights(self, save_path):
+        kwargs = {str(i): S.weight.get_value() for i, S in enumerate(self.synapse_groups)}
+        np.savez_compressed(save_path, **kwargs)
 
     def connect_many(self, N_src, *args):
         for N_snk in args:

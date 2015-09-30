@@ -4,8 +4,6 @@ import numpy as np
 
 from panda3d.core import NodePath, Vec3
 
-from actuator import Actuator
-
 def get_target_direction(direction):
     direction = Vec3(direction)
     direction.normalize()
@@ -23,7 +21,9 @@ ASCII_END = '\033[0m'
 
 class Arm:
 
-    def __init__(self):
+    def __init__(self, actuator):
+        self.actuator = actuator
+
         self.arm_pivot = NodePath("arm_pivot")
         self.arm_pivot.set_pos(0, 0, 0)
 
@@ -70,7 +70,6 @@ class Arm:
         model_effector.reparent_to(self.end_effector)
         model_effector.set_scale(0.5, 0.5, 0.5)
 
-        self.actuator = Actuator()
         self.home_position = [0, -45, 45, -90, 90]
 
         self.interval_mode = 1 # start resting
@@ -211,10 +210,6 @@ class Arm:
     def tick(self, dt, mouse_pos):
         if self.is_training:
             self.train(dt)
-
-            # save weights
-            for i, synapse_group in enumerate(self.actuator.synapse_groups):
-                np.savetxt('weights_%d.out' % i, synapse_group.weight.get_value(), delimiter=',')
         else:
             self.evaluate(mouse_pos)
 

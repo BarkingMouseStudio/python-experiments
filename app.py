@@ -2,11 +2,14 @@ from __future__ import division
 
 import sys
 
-from arm import Arm
 from direct.showbase.ShowBase import ShowBase
+from direct.task import Task
 
 from panda3d import bullet
 from panda3d.core import Point2, PerspectiveLens, ClockObject, DirectionalLight
+
+from arm import Arm
+from actuator import Actuator
 
 def create_lens(aspect_ratio):
     lens = PerspectiveLens()
@@ -16,8 +19,17 @@ def create_lens(aspect_ratio):
 
 class App(ShowBase):
 
-    def __init__(self, width, height):
+    def __init__(self, args):
         ShowBase.__init__(self)
+
+        width = args['--width']
+        height = args['--height']
+
+        save_interval = args['--save-interval']
+        save_path = args['--save']
+        load_path = args['--load']
+
+        print save_interval, save_path, load_path
 
         globalClock.set_mode(ClockObject.MNonRealTime)
         globalClock.set_dt(0.02) # 20ms per frame
@@ -33,13 +45,30 @@ class App(ShowBase):
         self.cam.look_at(0, 0, 0)
         self.cam.node().set_lens(create_lens(width / height))
 
-        self.arm = Arm()
+        self.actuator = Actuator()
+
+        self.arm = Arm(self.actuator)
         self.arm.arm_pivot.reparent_to(self.render)
 
         self.accept('escape', sys.exit)
         self.accept('x', self.arm.toggle_training)
 
         self.taskMgr.add(self.update, 'update')
+
+        if save_path is not None:
+            self.taskMgr.doMethodLater(save_interval, self.save, 'save', extraArgs=[save_path])
+
+        if load_path is not None:
+            self.load(load_path)
+
+        # print self.render.ls() # print tree
+
+    def save(self, save_path):
+        self.actuator.save_weights(save_path)
+        return Task.again
+
+    def load(self, load_path):
+        self.actuator.load_weights(load_path)
 
     def get_mouse_pos(self):
         if self.mouseWatcherNode.hasMouse():

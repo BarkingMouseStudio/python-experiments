@@ -1,1 +1,6 @@
 git+ssh://git@github.com/BarkingMouseStudio/neural-py.git
+docopt
+schema
+theano
+numpy
+panda3d

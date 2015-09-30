@@ -3,3 +3,4 @@ weights_*.out
 notebooks/.ipynb_checkpoints
 .DS_Store
 *.pyc
+weights.npz
