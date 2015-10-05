@@ -1,7 +1,7 @@
 """Generate training data for target matching.
 
 Usage:
-  main.py [--width=<width>] [--height=<height>] [--headless] <save_path>
+  main.py [--width=<width>] [--height=<height>] [--headless]
   main.py (-h | --help)
 
 Options:
@@ -27,7 +27,6 @@ def main():
         '--headless': bool,
         '--width': Use(int),
         '--height': Use(int),
-        '<save_path>': str,
     })
 
     try:

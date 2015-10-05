@@ -3,6 +3,7 @@ from __future__ import division
 import cPickle as pickle
 import random
 import sys
+import numpy as np
 
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
@@ -18,6 +19,15 @@ def create_lens(aspect_ratio):
     lens.setAspectRatio(aspect_ratio)
     return lens
 
+def get_angle(angle):
+    while angle > 180.0:
+        angle -= 360.0
+    while angle < -180.0:
+        angle += 360.0
+    return angle
+
+get_angle_vec = np.vectorize(get_angle)
+
 class App(ShowBase):
 
     def __init__(self, args):
@@ -28,9 +38,9 @@ class App(ShowBase):
         height = args['--height']
 
         self.save_path = args['<save_path>']
-        self.train_count = 60000
+        self.train_count = 100000
         self.test_count = 10000
-        self.home_position = [-135, -90, -45, 0, 45, 90, 135, 180]
+        self.home_position = np.arange(-180.0, 180.0, 15.0)
         self.iteration_count = 0
         self.home_count = 0
 
@@ -68,92 +78,53 @@ class App(ShowBase):
         pickle.dump(data, f)
         f.close()
 
+    def flatten_vectors(self, arr, angle=False):
+        res = np.array([[v.get_x(), v.get_y(), v.get_z()] for v in arr]).flatten()
+        return get_angle_vec(res) if angle else res
+
     def generate(self):
-        if self.iteration_count % 10 == 0:
-            # move to a random home position
-            h = random.choice(self.home_position)
-            p = random.choice(self.home_position)
-            r = random.choice(self.home_position)
-            self.arm.shoulder_pivot.set_hpr(h, p, r)
+        if self.iteration_count % 100 == 0:
+            shoulder_rotation = np.random.choice(self.home_position, 3)
+            elbow_rotation = np.random.choice(self.home_position, 3)
 
-            h = random.choice(self.home_position)
-            p = random.choice(self.home_position)
-            r = random.choice(self.home_position)
-            self.arm.elbow_pivot.set_hpr(h, p, r)
+            self.arm.shoulder_pivot.set_hpr(*shoulder_rotation)
+            self.arm.elbow_pivot.set_hpr(*elbow_rotation)
 
-            self.shoulder_vel = Vec3()
-            self.elbow_vel = Vec3()
-            self.end_vel = Vec3()
+            self.prev_joint_positions = [joint.get_pos(self.arm.arm_pivot) for joint in self.arm.joints]
+            self.prev_joint_rotations = [joint.get_hpr(self.arm.arm_pivot) for joint in self.arm.joints]
 
             self.home_count += 1
 
-        # save current position as previous
-        shoulder_pos = self.arm.shoulder_pivot.get_pos(self.arm.arm_pivot)
-        elbow_pos = self.arm.elbow_pivot.get_pos(self.arm.arm_pivot)
-        end_pos = self.arm.end_effector.get_pos(self.arm.arm_pivot)
+        joint_positions = [joint.get_pos(self.arm.arm_pivot) for joint in self.arm.joints]
+        joint_rotations = [joint.get_hpr(self.arm.arm_pivot) for joint in self.arm.joints]
+        linear_velocities = [joint_position - self.prev_joint_positions[i] for i, joint_position in enumerate(joint_positions)]
+        angular_velocities = [joint_rotation - self.prev_joint_rotations[i] for i, joint_rotation in enumerate(joint_rotations)]
 
-        # rotate to a position random +/- 5 degrees
-        shoulder_dh = random.uniform(-5.0, 5.0)
-        shoulder_dp = random.uniform(-5.0, 5.0)
-        shoulder_dr = random.uniform(-5.0, 5.0)
-        self.arm.rotate_shoulder(shoulder_dh, shoulder_dp, shoulder_dr)
+        shoulder_rotation = np.random.uniform(-5.0, 5.0, 3)
+        elbow_rotation = np.random.uniform(-5.0, 5.0, 3)
 
-        elbow_dh = random.uniform(-5.0, 5.0)
-        elbow_dp = random.uniform(-5.0, 5.0)
-        elbow_dr = random.uniform(-5.0, 5.0)
-        self.arm.rotate_elbow(elbow_dh, elbow_dp, elbow_dr)
+        self.arm.rotate_shoulder(*shoulder_rotation)
+        self.arm.rotate_elbow(*elbow_rotation)
 
-        # save current position as target
-        next_shoulder_pos = self.arm.shoulder_pivot.get_pos(self.arm.arm_pivot)
-        next_elbow_pos = self.arm.elbow_pivot.get_pos(self.arm.arm_pivot)
-        next_end_pos = self.arm.end_effector.get_pos(self.arm.arm_pivot)
+        next_joint_positions = [joint.get_pos(self.arm.arm_pivot) for joint in self.arm.joints]
+        next_joint_rotations = [joint.get_hpr(self.arm.arm_pivot) for joint in self.arm.joints]
 
-        # calculate target direction from new position
-        shoulder_target = next_shoulder_pos - shoulder_pos
-        elbow_target = next_elbow_pos - elbow_pos
-        end_target = next_end_pos - end_pos
+        target_directions = [next_joint_position - joint_positions[i] for i, next_joint_position in enumerate(next_joint_positions)]
+        target_rotations = [next_joint_rotation - joint_rotations[i] for i, next_joint_rotation in enumerate(next_joint_rotations)]
 
-        # current
-        position = [
-            elbow_pos.get_x() / 10.0,
-            elbow_pos.get_y() / 10.0,
-            elbow_pos.get_z() / 10.0,
-            end_pos.get_x() / 10.0,
-            end_pos.get_y() / 10.0,
-            end_pos.get_z() / 10.0]
+        position = self.flatten_vectors(joint_positions) / 10.0
+        rotation = self.flatten_vectors(joint_rotations) / 180.0
+        linear_velocity = self.flatten_vectors(linear_velocities) / 5.0
+        angular_velocity = self.flatten_vectors(angular_velocities, angle=True) / 180.0
+        target_direction = self.flatten_vectors(target_directions) / 5.0
+        target_rotation = self.flatten_vectors(target_rotations, angle=True) / 180.0
 
-        # past
-        velocity = [
-            self.elbow_vel.get_x() / 5.0,
-            self.elbow_vel.get_y() / 5.0,
-            self.elbow_vel.get_z() / 5.0,
-            self.end_vel.get_x() / 5.0,
-            self.end_vel.get_y() / 5.0,
-            self.end_vel.get_z() / 5.0]
+        X = np.concatenate([position, rotation, linear_velocity, angular_velocity, target_direction, target_rotation])
 
-        # future
-        target = [
-            elbow_target.get_x() / 5.0,
-            elbow_target.get_y() / 5.0,
-            elbow_target.get_z() / 5.0,
-            end_target.get_x() / 5.0,
-            end_target.get_y() / 5.0,
-            end_target.get_z() / 5.0]
+        Y = np.concatenate([shoulder_rotation, elbow_rotation]) / 5.0
 
-        X = position + target
-
-        # output (delta euler rotation)
-        Y = [
-            shoulder_dh / 5.0,
-            shoulder_dp / 5.0,
-            shoulder_dr / 5.0,
-            elbow_dh / 5.0,
-            elbow_dp / 5.0,
-            elbow_dr / 5.0]
-
-        self.shoulder_vel = shoulder_target
-        self.elbow_vel = elbow_target
-        self.end_vel = end_target
+        self.prev_joint_positions = joint_positions
+        self.prev_joint_rotations = joint_rotations
 
         self.iteration_count += 1
 

@@ -6,10 +6,13 @@ from panda3d.core import Quat, NodePath, Vec3
 
 class Arm:
 
-    def __init__(self, parent):
+    def __init__(self, parent, color):
         self.arm_pivot = NodePath("arm_pivot")
         self.arm_pivot.reparent_to(parent)
         self.arm_pivot.set_pos(0, 0, 0)
+
+        r, g, b, a = color
+        self.arm_pivot.set_color(r, g, b, a)
 
         self.shoulder_pivot = NodePath("shoulder_pivot")
         self.shoulder_pivot.reparent_to(self.arm_pivot)
