@@ -2,6 +2,8 @@
 weights_*.out
 notebooks/.ipynb_checkpoints
 .DS_Store
+*.json
+*.hdf5
 *.pyc
 *.npz
 *.pkl

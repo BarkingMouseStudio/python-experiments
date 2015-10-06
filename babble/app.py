@@ -7,9 +7,11 @@ import numpy as np
 
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
+from direct.actor.Actor import Actor
 
 from panda3d import bullet
 from panda3d.core import Vec3, PerspectiveLens, ClockObject, DirectionalLight
+from pandac.PandaModules import CharacterJoint, LineSegs
 
 from arm import Arm
 
@@ -28,6 +30,30 @@ def get_angle(angle):
 
 get_angle_vec = np.vectorize(get_angle)
 
+def draw_joints(joints, lines=True, nodes=False):
+    for node, parent in joints:
+        lines = LineSegs()
+        lines.set_thickness(3.0)
+        lines.move_to(0, 0, 0)
+        lines.draw_to(node.get_pos(parent))
+
+        parent.attach_new_node(lines.create())
+
+        model = loader.loadModel("icosphere.egg")
+        model.reparent_to(node)
+
+def walk_joints(actor, part, joint_list, parent=None):
+    if isinstance(part, CharacterJoint):
+        node = actor.exposeJoint(None, 'modelRoot', part.get_name())
+
+        if parent and parent.get_name() != 'root':
+            joint_list.append((node, parent))
+
+        parent = node
+
+    for child in part.get_children():
+        walk_joints(actor, child, joint_list, parent)
+
 class App(ShowBase):
 
     def __init__(self, args):
@@ -40,26 +66,35 @@ class App(ShowBase):
         self.save_path = args['<save_path>']
         self.train_count = 100000
         self.test_count = 10000
-        self.home_position = np.arange(-180.0, 180.0, 15.0)
         self.iteration_count = 0
-        self.home_count = 0
 
         globalClock.set_mode(ClockObject.MNonRealTime)
         globalClock.set_dt(0.02) # 20ms per frame
 
         # self.toggleWireframe()
-        self.disableMouse() # just disables camera movement with mouse
+        # self.disableMouse() # just disables camera movement with mouse
 
         light = DirectionalLight('light')
         light_np = self.render.attach_new_node(light)
         self.render.set_light(light_np)
 
         if not headless:
-            self.cam.set_pos(0, -20, 0)
+            self.cam.set_pos(0, -200, 0)
             self.cam.look_at(0, 0, 0)
             self.cam.node().set_lens(create_lens(width / height))
 
-        self.arm = Arm(self.render)
+        self.rig = Actor('walking.egg', {
+            'walk': 'walking-animation.egg'
+        })
+        self.rig.reparent_to(self.render)
+        self.rig.set_bin('background', 1)
+        self.rig.loop('walk')
+
+        self.joints = []
+        walk_joints(self.rig, self.rig.getPartBundle('modelRoot'), self.joints, None)
+        draw_joints(self.joints, lines=True, nodes=True)
+
+        # self.arm = Arm(self.render)
 
         self.X_train = []
         self.Y_train = []
@@ -68,7 +103,7 @@ class App(ShowBase):
         self.Y_test = []
 
         self.accept('escape', sys.exit)
-        self.taskMgr.add(self.update, 'update')
+        # self.taskMgr.add(self.update, 'update')
 
     def save(self):
         print 'saving...', self.save_path
@@ -151,6 +186,6 @@ class App(ShowBase):
         total_completed = len(self.X_train) + len(self.X_test)
         total_count = self.train_count + self.test_count
 
-        print 'progress: %f%%, homes: %d' % ((total_completed / total_count) * 100.0, self.home_count)
+        print 'progress: %f%%' % ((total_completed / total_count) * 100.0)
 
         return task.cont
