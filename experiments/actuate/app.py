@@ -45,7 +45,7 @@ class App(ShowBase):
         self.animated_rig.set_pos(-50, 0, 0)
         self.animated_rig.pose('walk', 0)
 
-        self.num_frames = self.animated_rig.getNumFrames('walk')
+        self.num_frames = 2 # self.animated_rig.getNumFrames('walk')
 
         self.animated_joint_list = []
         walk_joints(self.animated_rig, self.animated_rig.getPartBundle('modelRoot'), self.animated_joint_list, None, lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
@@ -79,20 +79,24 @@ class App(ShowBase):
         self.taskMgr.add(self.update, 'update')
 
     def update(self, task):
-        frame_count = globalClock.getFrameCount()
-        self.animated_rig.pose('walk', frame_count % self.num_frames)
-
         joint_positions = [node.get_pos(self.control_rig) for node, parent in self.joint_list]
         joint_rotations = [node.get_hpr(self.control_rig) for node, parent in self.joint_list]
 
         linear_velocities = [joint_position - prev_joint_position for joint_position, prev_joint_position in zip(joint_positions, self.prev_joint_positions)]
         angular_velocities = [joint_rotation - prev_joint_rotation for joint_rotation, prev_joint_rotation in zip(joint_rotations, self.prev_joint_rotations)]
 
+        frame_count = globalClock.getFrameCount()
+        self.animated_rig.pose('walk', frame_count % self.num_frames)
+
         next_joint_positions = [node.get_pos(self.animated_rig) for node, parent in self.animated_joint_list]
         next_joint_rotations = [node.get_hpr(self.animated_rig) for node, parent in self.animated_joint_list]
 
         target_directions = [next_joint_position - joint_position for next_joint_position, joint_position in zip(next_joint_positions, joint_positions)]
         target_rotations = [next_joint_rotation - joint_rotation for next_joint_rotation, joint_rotation in zip(next_joint_rotations, joint_rotations)]
+
+        print joint_positions
+        print next_joint_positions
+        print target_directions
 
         position = flatten_vectors(joint_positions) / 200.0
         rotation = flatten_vectors(joint_rotations) / 180.0
