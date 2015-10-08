@@ -5,6 +5,7 @@ import numpy as np
 import cPickle as pickle
 import random
 import sys
+import pandas as pd
 
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
@@ -13,7 +14,7 @@ from direct.actor.Actor import Actor
 from panda3d.core import Vec3, Quat, PerspectiveLens, ClockObject, DirectionalLight
 from pandac.PandaModules import CharacterJoint, LineSegs
 
-from ..utils import create_lens, walk_joints, draw_joints, match_pose, apply_control_joints, filter_joints, load_model, flatten_vectors, rotate_node, measure_error
+from ..utils import create_lens, walk_joints, draw_joints, match_pose, apply_control_joints, filter_joints, load_model, flatten_vectors, rotate_node, measure_error, get_angle_vec
 
 class App(ShowBase):
 
@@ -48,8 +49,10 @@ class App(ShowBase):
         self.animated_rig.pose('walk', 0)
 
         self.num_frames = self.animated_rig.getNumFrames('walk')
-        self.train_count = self.num_frames * 1000
-        self.test_count = self.num_frames * 100
+        self.train_count = self.num_frames * 2000
+        self.test_count = self.num_frames * 200
+
+        self.babble_count = 100
 
         print self.train_count, self.test_count
 
@@ -88,11 +91,9 @@ class App(ShowBase):
         f.close()
 
     def generate(self, count):
-        babble_count = 100
-
-        if count % babble_count == 0:
+        if count % self.babble_count == 0:
             # step forward animated rig
-            self.animated_rig.pose('walk', int(count / babble_count) % self.num_frames)
+            self.animated_rig.pose('walk', int(count / self.babble_count) % self.num_frames)
 
             # copy over pose
             match_pose(self.animated_joint_list, self.control_joint_list)
@@ -108,10 +109,16 @@ class App(ShowBase):
         angular_velocities = [joint_rotation - prev_joint_rotation for joint_rotation, prev_joint_rotation in zip(joint_rotations, self.prev_joint_rotations)]
 
         rotations = []
-        for node, parent in self.control_joint_list:
-            local_rotation = np.random.uniform(-1.0, 1.0, 3)
+        for i, node_parent in enumerate(self.control_joint_list):
+            if i == 2: # TODO: only babble joints with children
+                continue
+
+            node, parent = node_parent
+            local_rotation = np.random.uniform(-5.0, 5.0, 3)
             rotate_node(node, *local_rotation)
             rotations.append(local_rotation)
+        rotations = np.array(rotations)
+
         apply_control_joints(self.control_joint_list, self.joint_list)
 
         next_joint_positions = [node.get_pos(self.control_rig) for node, parent in self.joint_list]
@@ -120,15 +127,15 @@ class App(ShowBase):
         target_directions = [next_joint_position - joint_position for next_joint_position, joint_position in zip(next_joint_positions, joint_positions)]
         target_rotations = [next_joint_rotation - joint_rotation for next_joint_rotation, joint_rotation in zip(next_joint_rotations, joint_rotations)]
 
-        position = flatten_vectors(joint_positions) / 200.0
+        position = flatten_vectors(joint_positions) / 6.0
         rotation = flatten_vectors(joint_rotations) / 180.0
-        linear_velocity = flatten_vectors(linear_velocities) / 50.0
-        angular_velocity = flatten_vectors(angular_velocities, angle=True) / 180.0
-        target_direction = flatten_vectors(target_directions) / 50.0
-        target_rotation = flatten_vectors(target_rotations, angle=True) / 180.0
+        linear_velocity = flatten_vectors(linear_velocities) / 5.0
+        angular_velocity = get_angle_vec(flatten_vectors(angular_velocities)) / 180.0
+        target_direction = flatten_vectors(target_directions) / 5.0
+        target_rotation = get_angle_vec(flatten_vectors(target_rotations)) / 180.0
 
         X = np.concatenate([position, rotation, linear_velocity, angular_velocity, target_direction, target_rotation])
-        Y = np.concatenate(rotations)
+        Y = np.concatenate(rotations) / 5.0
 
         self.prev_joint_positions = joint_positions
         self.prev_joint_rotations = joint_rotations
@@ -156,7 +163,7 @@ class App(ShowBase):
             sys.exit()
             return task.done
 
-        total_completed = len(self.X_train) + len(self.X_test)
+        total_completed = curr_train_count + curr_test_count
         total_count = self.train_count + self.test_count
 
         print 'progress: %f%%' % ((total_completed / total_count) * 100.0)

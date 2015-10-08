@@ -32,9 +32,8 @@ def get_angle(angle):
 
 get_angle_vec = np.vectorize(get_angle)
 
-def flatten_vectors(arr, angle=False):
-    res = np.array([[v.get_x(), v.get_y(), v.get_z()] for v in arr]).flatten()
-    return get_angle_vec(res) if angle else res
+def flatten_vectors(arr):
+    return np.array([[v.get_x(), v.get_y(), v.get_z()] for v in arr]).flatten()
 
 def draw_joints(joint_list):
     for node, parent in joint_list:
@@ -108,24 +107,24 @@ def apply_control_joints(control_joint_list, exposed_joint_list):
         else:
             exposed_joint.set_pos_hpr(control_pos, control_hpr)
 
-def measure_error(control_joint_list, pose_joint_list):
+def measure_error(exposed_joint_list, pose_joint_list):
     err = 0.0
-    for control_joint_pair, pose_joint_pair in zip(control_joint_list, pose_joint_list):
-        control_joint, control_joint_parent = control_joint_pair
+    for exposed_joint_pair, pose_joint_pair in zip(exposed_joint_list, pose_joint_list):
+        exposed_joint, exposed_joint_parent = exposed_joint_pair
         pose_joint, pose_joint_parent = pose_joint_pair
 
-        if control_joint_parent is None or pose_joint_parent is None:
+        if exposed_joint_parent is None or pose_joint_parent is None:
             continue
 
         # get target pose position and orientation in local space
         target_pos = pose_joint.get_pos(pose_joint_parent)
         target_hpr = pose_joint.get_hpr(pose_joint_parent)
 
-        control_pos = control_joint.get_pos()
-        control_hpr = control_joint.get_hpr()
+        exposed_pos = exposed_joint.get_pos(exposed_joint_parent)
+        exposed_hpr = exposed_joint.get_hpr(exposed_joint_parent)
 
-        diff_pos = (target_pos - control_pos).length()
-        diff_hpr = (target_hpr - control_hpr).length()
+        diff_pos = (target_pos - exposed_pos).length()
+        diff_hpr = (target_hpr - exposed_hpr).length()
         err += (diff_pos / 1.0) + (diff_hpr / 180.0)
 
     return err
