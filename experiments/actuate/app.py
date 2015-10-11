@@ -45,7 +45,6 @@ class App(ShowBase):
         self.animated_rig = Actor('walking.egg', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparent_to(self.render)
         self.animated_rig.set_pos(0, 0, 0)
-        self.animated_rig.pose('walk', 0)
         self.animated_rig.set_bin('background', 1)
 
         self.num_frames = self.animated_rig.getNumFrames('walk')
@@ -53,10 +52,10 @@ class App(ShowBase):
         self.animated_joint_list = []
         walk_joints(self.animated_rig, self.animated_rig.getPartBundle('modelRoot'), self.animated_joint_list, None, lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
         self.animated_joint_list = [(node, parent) for node, parent in self.animated_joint_list if node.get_name() not in excluded_joints]
-        # draw_joints(self.animated_joint_list, (0.5, 0.75, 1.0))
+        draw_joints(self.animated_joint_list, (0.5, 0.75, 1.0))
 
         # rig with control joints (prevents animation)
-        self.control_rig = Actor('walking.egg', { 'walk': 'walking-animation.egg' })
+        self.control_rig = Actor('walking.egg')
         self.control_rig.reparent_to(self.render)
         self.control_rig.set_pos(0, 0, 0)
         self.control_rig.set_bin('background', 1)
@@ -70,13 +69,13 @@ class App(ShowBase):
         walk_joints(self.control_rig, self.control_rig.getPartBundle('modelRoot'), self.control_joint_list, None, lambda actor, part: actor.controlJoint(None, 'modelRoot', part.get_name()))
         self.control_joint_list = [(node, parent) for node, parent in self.control_joint_list if node.get_name() not in excluded_joints]
 
-        self.prev_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos(self.control_rig) for node, parent in self.exposed_joint_list]
-        self.prev_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr(self.control_rig) for node, parent in self.exposed_joint_list]
-
         self.animated_rig.pose('walk', 0)
         self.animated_rig.update(force=True)
         match_pose(self.animated_joint_list, self.control_joint_list)
         apply_control_joints(self.control_joint_list, self.exposed_joint_list)
+
+        self.prev_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos(self.control_rig) for node, parent in self.exposed_joint_list]
+        self.prev_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr(self.control_rig) for node, parent in self.exposed_joint_list]
 
         self.model = load_model('model.json', 'weights.hdf5')
         self.err_sum = 0.0
@@ -89,7 +88,7 @@ class App(ShowBase):
         self.animated_rig.update(force=True)
 
         # apply root motion
-        if frame_count % self.num_frames == 0:
+        if frame_count % self.num_frames == 1:
             match_pose(self.animated_joint_list, self.control_joint_list)
             apply_control_joints(self.control_joint_list, self.exposed_joint_list)
         else:
