@@ -82,6 +82,27 @@ def filter_joints(joint_list, root_name, exclude):
         excluded_joint_list.append((node, parent))
     return excluded_joint_list
 
+def get_max_joint_angles(actor, joints, animation_name):
+    max_angles = [0 for joint in joints]
+
+    actor.pose(animation_name, 0)
+    actor.update(force=True)
+
+    frame_count = actor.getNumFrames(animation_name)
+
+    for frame in range(frame_count):
+        prev_quat = [node.get_quat(parent) if parent is not None else node.get_quat(actor) for node, parent in joints]
+
+        actor.pose(animation_name, frame)
+        actor.update(force=True)
+
+        curr_quat = [node.get_quat(parent) if parent is not None else node.get_quat(actor) for node, parent in joints]
+
+        diff_angles = [curr_quat.angle_deg(prev_quat) for curr_quat, prev_quat in zip(curr_quat, prev_quat)]
+        max_angles = [max(math.ceil(diff_angle), max_angle) for diff_angle, max_angle in zip(diff_angles, max_angles)]
+
+    return max_angles
+
 def match_pose(pose_joint_list, control_joint_list):
     for pose_joint_pair, control_joint_pair in zip(pose_joint_list, control_joint_list):
         pose_joint, pose_joint_parent = pose_joint_pair
@@ -134,7 +155,7 @@ def measure_error(control_joint_list, exposed_joint_list):
 
         diff_pos = (exposed_pos - control_pos).length()
         diff_quat = exposed_quat.angle_deg(control_quat)
-        err += (diff_pos / 1.0) + (diff_quat / 180.0)
+        err += diff_quat / 180.0
 
     return err
 

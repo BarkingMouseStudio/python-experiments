@@ -14,7 +14,7 @@ from direct.actor.Actor import Actor
 from panda3d.core import Vec3, Quat, PerspectiveLens, ClockObject, DirectionalLight
 from pandac.PandaModules import CharacterJoint, LineSegs
 
-from ..utils import create_lens, walk_joints, draw_joints, match_pose, apply_control_joints, filter_joints, load_model, flatten_vectors, rotate_node, measure_error, get_angle_vec
+from ..utils import create_lens, walk_joints, draw_joints, match_pose, apply_control_joints, filter_joints, load_model, flatten_vectors, rotate_node, measure_error, get_angle_vec, get_max_joint_angles
 
 excluded_joints = ['LeftHandIndex1', 'LeftHandIndex2', 'LeftHandIndex3', 'LeftHandMiddle1', 'LeftHandMiddle2', 'LeftHandMiddle3', 'LeftHandPinky1', 'LeftHandPinky2', 'LeftHandPinky3', 'LeftHandRing1', 'LeftHandRing2', 'LeftHandRing3', 'LeftHandThumb1', 'LeftHandThumb2', 'LeftHandThumb3', 'RightHandIndex1', 'RightHandIndex2', 'RightHandIndex3', 'RightHandMiddle1', 'RightHandMiddle2', 'RightHandMiddle3', 'RightHandPinky1', 'RightHandPinky2', 'RightHandPinky3', 'RightHandRing1', 'RightHandRing2', 'RightHandRing3', 'RightHandThumb1', 'RightHandThumb2', 'RightHandThumb3']
 
@@ -48,10 +48,9 @@ class App(ShowBase):
         self.animated_rig = Actor('walking.egg', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparent_to(self.render)
         self.animated_rig.set_pos(0, 0, 0)
-        self.animated_rig.pose('walk', 0)
 
         self.num_frames = self.animated_rig.getNumFrames('walk')
-        self.train_count = self.num_frames * 3000
+        self.train_count = self.num_frames * 4000
         self.test_count = self.num_frames * 100
 
         self.babble_count = 10
@@ -63,21 +62,27 @@ class App(ShowBase):
         self.animated_joint_list = [(node, parent) for node, parent in self.animated_joint_list if node.get_name() not in excluded_joints]
         draw_joints(self.animated_joint_list, (0.5, 0.75, 1.0))
 
+        self.max_joint_angles = np.array(get_max_joint_angles(self.animated_rig, self.animated_joint_list, 'walk'))
+        print 'max joint angle', self.max_joint_angles.max()
+
         # rig with control joints (prevents animation)
         self.control_rig = Actor('walking.egg', { 'walk': 'walking-animation.egg' })
         self.control_rig.reparent_to(self.render)
         self.control_rig.set_pos(0, 0, 0)
 
-        self.joint_list = []
-        walk_joints(self.control_rig, self.control_rig.getPartBundle('modelRoot'), self.joint_list, None, lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
-        self.joint_list = [(node, parent) for node, parent in self.joint_list if node.get_name() not in excluded_joints]
-        draw_joints(self.joint_list, (1.0, 0.75, 0.5))
+        self.exposed_joint_list = []
+        walk_joints(self.control_rig, self.control_rig.getPartBundle('modelRoot'), self.exposed_joint_list, None, lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
+        self.exposed_joint_list = [(node, parent) for node, parent in self.exposed_joint_list if node.get_name() not in excluded_joints]
+        draw_joints(self.exposed_joint_list, (1.0, 0.75, 0.5))
 
         self.control_joint_list = []
         walk_joints(self.control_rig, self.control_rig.getPartBundle('modelRoot'), self.control_joint_list, None, lambda actor, part: actor.controlJoint(None, 'modelRoot', part.get_name()))
         self.control_joint_list = [(node, parent) for node, parent in self.control_joint_list if node.get_name() not in excluded_joints]
-        # match_pose(self.animated_joint_list, self.control_joint_list)
-        # apply_control_joints(self.control_joint_list, self.joint_list)
+
+        self.animated_rig.pose('walk', 0)
+        self.animated_rig.update(force=True)
+        match_pose(self.animated_joint_list, self.control_joint_list)
+        apply_control_joints(self.control_joint_list, self.exposed_joint_list)
 
         self.X_train = []
         self.Y_train = []
@@ -97,18 +102,16 @@ class App(ShowBase):
 
     def generate(self, count):
         if count % self.babble_count == 0:
-            # step forward animated rig
             self.animated_rig.pose('walk', int(count / self.babble_count) % self.num_frames)
-
-            # copy over pose
+            self.animated_rig.update(force=True)
             match_pose(self.animated_joint_list, self.control_joint_list)
-            apply_control_joints(self.control_joint_list, self.joint_list)
+            apply_control_joints(self.control_joint_list, self.exposed_joint_list)
 
-            self.prev_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos(self.control_rig) for node, parent in self.joint_list]
-            self.prev_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr(self.control_rig) for node, parent in self.joint_list]
+            self.prev_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos() for node, parent in self.exposed_joint_list]
+            self.prev_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr() for node, parent in self.exposed_joint_list]
 
-        joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos(self.control_rig) for node, parent in self.joint_list]
-        joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr(self.control_rig) for node, parent in self.joint_list]
+        joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos() for node, parent in self.exposed_joint_list]
+        joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr() for node, parent in self.exposed_joint_list]
 
         linear_velocities = [joint_position - prev_joint_position for joint_position, prev_joint_position in zip(joint_positions, self.prev_joint_positions)]
         angular_velocities = [joint_rotation - prev_joint_rotation for joint_rotation, prev_joint_rotation in zip(joint_rotations, self.prev_joint_rotations)]
@@ -116,28 +119,29 @@ class App(ShowBase):
         rotations = []
         for i, node_parent in enumerate(self.control_joint_list):
             node, parent = node_parent
-            local_rotation = np.random.uniform(-6.0, 6.0, 3)
+            max_joint_angle = self.max_joint_angles[i]
+
+            local_rotation = np.random.uniform(-max_joint_angle, max_joint_angle, 3)
+
             rotate_node(node, *local_rotation)
             rotations.append(local_rotation)
-        rotations = np.array(rotations)
+        apply_control_joints(self.control_joint_list, self.exposed_joint_list)
 
-        apply_control_joints(self.control_joint_list, self.joint_list)
-
-        next_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos(self.control_rig) for node, parent in self.joint_list]
-        next_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr(self.control_rig) for node, parent in self.joint_list]
+        next_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos() for node, parent in self.exposed_joint_list]
+        next_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr() for node, parent in self.exposed_joint_list]
 
         target_directions = [next_joint_position - joint_position for next_joint_position, joint_position in zip(next_joint_positions, joint_positions)]
         target_rotations = [next_joint_rotation - joint_rotation for next_joint_rotation, joint_rotation in zip(next_joint_rotations, joint_rotations)]
 
-        position = flatten_vectors(joint_positions) / 200.0
-        rotation = flatten_vectors(joint_rotations) / 180.0
-        linear_velocity = flatten_vectors(linear_velocities) / 1.0
-        angular_velocity = get_angle_vec(flatten_vectors(angular_velocities)) / 180.0
-        target_direction = flatten_vectors(target_directions) / 1.0
-        target_rotation = get_angle_vec(flatten_vectors(target_rotations)) / 180.0
+        joint_positions = flatten_vectors(joint_positions) / 20.0
+        joint_rotations = flatten_vectors(joint_rotations) / 180.0
+        linear_velocities = flatten_vectors(linear_velocities) / 20.0
+        angular_velocities = get_angle_vec(flatten_vectors(angular_velocities)) / 180.0
+        target_directions = flatten_vectors(target_directions) / 1.0
+        target_rotations = get_angle_vec(flatten_vectors(target_rotations)) / 180.0
 
-        X = np.concatenate([position, rotation, linear_velocity, angular_velocity, target_direction, target_rotation])
-        Y = np.concatenate(rotations) / 6.0
+        X = np.concatenate([joint_positions, joint_rotations, linear_velocities, angular_velocities, target_directions, target_rotations])
+        Y = np.concatenate(rotations) / self.max_joint_angles.max()
 
         self.prev_joint_positions = joint_positions
         self.prev_joint_rotations = joint_rotations
