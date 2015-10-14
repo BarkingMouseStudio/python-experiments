@@ -10,6 +10,7 @@ def main():
     loadPrcFileData('', 'win-size %d %d' % (width, height))
     loadPrcFileData('', 'audio-library-name null') # suppress warning
     loadPrcFileData('', 'model-path %s' % model_path)
+    loadPrcFileData('', 'bullet-filter-algorithm groups-mask')
 
     app = App(width, height)
     app.run()

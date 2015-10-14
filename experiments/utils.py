@@ -21,6 +21,7 @@ def create_lens(aspect_ratio):
     lens = PerspectiveLens()
     lens.setFov(60)
     lens.setAspectRatio(aspect_ratio)
+    lens.setNearFar(1.0, 1000.0)
     return lens
 
 def get_angle(angle):
