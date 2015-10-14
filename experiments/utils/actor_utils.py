@@ -1,87 +1,28 @@
-from __future__ import division
+from panda3d.core import LineSegs
+from pandac.PandaModules import CharacterJoint
 
-import math
-import numpy as np
-import cPickle as pickle
-import random
-import sys
-
-from panda3d.core import Vec3, Quat, PerspectiveLens, ClockObject, DirectionalLight
-from pandac.PandaModules import CharacterJoint, LineSegs
-
-from keras.models import model_from_json
-
-def rotate_node(node, dh, dp, dr):
-    dq = Quat()
-    dq.set_hpr(Vec3(dh, dp, dr))
-    q = node.get_quat()
-    node.set_quat(q * dq)
-
-def create_lens(aspect_ratio):
-    lens = PerspectiveLens()
-    lens.setFov(60)
-    lens.setAspectRatio(aspect_ratio)
-    lens.setNearFar(1.0, 1000.0)
-    return lens
-
-def get_angle(angle):
-    while angle > 180.0:
-        angle -= 360.0
-    while angle < -180.0:
-        angle += 360.0
-    return angle
-
-get_angle_vec = np.vectorize(get_angle)
-
-def flatten_vectors(arr):
-    return np.array([[v.get_x(), v.get_y(), v.get_z()] for v in arr]).flatten()
-
-def draw_joints(joint_list, color):
-    for node, parent in joint_list:
-        if parent is None:
-            continue
-
-        lines = LineSegs()
-        lines.set_thickness(3.0)
-        lines.set_color(*color)
-        lines.move_to(0, 0, 0)
-        lines.draw_to(node.get_pos(parent))
-
-        lines_np = parent.attach_new_node(lines.create())
-        lines_np.set_bin('fixed', 40)
-        lines_np.set_depth_write(False)
-        lines_np.set_depth_test(False)
-
-def walk_joints(actor, part, joint_list, parent, node_fn):
+def walk_joints(actor, part, fn, prev=None):
     if isinstance(part, CharacterJoint):
-        node = node_fn(actor, part)
-        joint_list.append((node, parent))
-        parent = node
+        curr = fn(actor, part)
+        yield curr, prev
+        prev = curr
 
-    for child in part.get_children():
-        walk_joints(actor, child, joint_list, parent, node_fn)
+    for part_child in part.get_children():
+        for next_curr, next_prev in walk_joints(actor, part_child, fn, prev):
+            yield next_curr, next_prev
 
-def filter_joints(joint_list, root_name, exclude):
-    filtered_joint_list = []
+def create_lines(joints, color, thickness=5.0):
+    for node, parent in joints:
+        if parent is not None:
+            lines = LineSegs()
+            lines.setThickness(thickness)
+            lines.setColor(color)
+            lines.moveTo(0, 0, 0)
+            lines.drawTo(node.getPos(parent))
 
-    root = None
-    for node, parent in joint_list:
-        if root is None: # found root
-            if node.get_name() == root_name:
-                filtered_joint_list.append((node, parent))
-                root = node
-        elif root is parent: # found descendent
-            filtered_joint_list.append((node, parent))
-            root = node
-        else:
-            break
-
-    excluded_joint_list = []
-    for node, parent in filtered_joint_list:
-        if node.get_name() in exclude:
-            continue
-        excluded_joint_list.append((node, parent))
-    return excluded_joint_list
+            np = parent.attachNewNode(lines.create())
+            np.setDepthWrite(False)
+            np.setDepthTest(False)
 
 def get_max_joint_angles(actor, joints, animation_name):
     max_angles = [0 for joint in joints]
@@ -159,9 +100,3 @@ def measure_error(control_joint_list, exposed_joint_list):
         err += diff_quat / 180.0
 
     return err
-
-def load_model(model_path, weights_path):
-    json = open(model_path, 'r').read()
-    model = model_from_json(json)
-    model.load_weights(weights_path)
-    return model
