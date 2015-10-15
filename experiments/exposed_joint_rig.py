@@ -1,6 +1,7 @@
 from direct.actor.Actor import Actor
 
-from .utils.actor_utils import walk_joints, create_lines
+from .utils.actor_utils import walk_joints, create_lines, filter_joints
+from .config import excluded_joints
 
 class ExposedJointRig:
 
@@ -10,8 +11,18 @@ class ExposedJointRig:
         exposed_joint_gen = walk_joints(self.actor, self.actor.getPartBundle('modelRoot'), \
             lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
 
-        self.exposed_joints = [joint for joint in exposed_joint_gen]
+        self.exposed_joints = filter_joints(exposed_joint_gen, excluded_joints)
+
         create_lines(self.exposed_joints, color)
+
+    def setPlayRate(self, play_rate, animation_name):
+        self.actor.setPlayRate(play_rate, animation_name)
+
+    def setRoot(self, name):
+        self.root = [node for node, parent in self.exposed_joints if node.get_name() == name][0]
+
+    def setPos(self, x, y, z):
+        self.actor.setPos(x, y, z)
 
     def reparentTo(self, other):
         self.actor.reparentTo(other)
