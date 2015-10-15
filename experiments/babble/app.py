@@ -5,18 +5,15 @@ import numpy as np
 import cPickle as pickle
 import random
 import sys
-import pandas as pd
 
 from direct.showbase.ShowBase import ShowBase
-from direct.task import Task
-from direct.actor.Actor import Actor
 
-from panda3d.core import Vec3, Quat, PerspectiveLens, ClockObject, DirectionalLight
-from pandac.PandaModules import CharacterJoint, LineSegs
+from panda3d.core import VBase4, Vec3, PerspectiveLens, ClockObject, DirectionalLight, AmbientLight, BitMask32
+from panda3d.bullet import BulletWorld, BulletPlaneShape, BulletRigidBodyNode, BulletDebugNode
 
-from ..utils import create_lens, walk_joints, draw_joints, match_pose, apply_control_joints, filter_joints, load_model, flatten_vectors, rotate_node, measure_error, get_angle_vec, get_max_joint_angles
-
-excluded_joints = ['LeftHandIndex1', 'LeftHandIndex2', 'LeftHandIndex3', 'LeftHandMiddle1', 'LeftHandMiddle2', 'LeftHandMiddle3', 'LeftHandPinky1', 'LeftHandPinky2', 'LeftHandPinky3', 'LeftHandRing1', 'LeftHandRing2', 'LeftHandRing3', 'LeftHandThumb1', 'LeftHandThumb2', 'LeftHandThumb3', 'RightHandIndex1', 'RightHandIndex2', 'RightHandIndex3', 'RightHandMiddle1', 'RightHandMiddle2', 'RightHandMiddle3', 'RightHandPinky1', 'RightHandPinky2', 'RightHandPinky3', 'RightHandRing1', 'RightHandRing2', 'RightHandRing3', 'RightHandThumb1', 'RightHandThumb2', 'RightHandThumb3']
+from ..exposed_joint_rig import ExposedJointRig
+from ..control_joint_rig import ControlJointRig
+from ..rigid_body_rig import RigidBodyRig
 
 class App(ShowBase):
 
@@ -49,11 +46,11 @@ class App(ShowBase):
         self.animated_rig.reparent_to(self.render)
         self.animated_rig.set_pos(0, 0, 0)
 
-        self.num_frames = self.animated_rig.getNumFrames('walk')
-        self.train_count = self.num_frames * 4000
-        self.test_count = self.num_frames * 100
-
+        self.frame_count = self.animated_rig.getNumFrames('walk')
         self.babble_count = 10
+
+        self.train_count = self.frame_count * self.babble_count * 300
+        self.test_count = self.frame_count * self.babble_count * 10
 
         print self.train_count, self.test_count
 

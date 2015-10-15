@@ -15,6 +15,9 @@ class ExposedJointRig:
 
         create_lines(self.exposed_joints, color)
 
+    def getNumFrames(self, animation_name):
+        return self.actor.getNumFrames(animation_name)
+
     def setPlayRate(self, play_rate, animation_name):
         self.actor.setPlayRate(play_rate, animation_name)
 
