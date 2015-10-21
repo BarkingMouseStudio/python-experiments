@@ -32,30 +32,33 @@ class App(ShowBase):
         self.setupDebug()
         self.createPlane()
 
-        self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' }, VBase4(0.5, 0.75, 1.0, 1.0))
+        self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
         self.animated_rig.setRoot('Hips')
+        # self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
         self.animated_rig.reparentTo(self.render)
-        self.animated_rig.setPlayRate(0.5, 'walk')
-        self.animated_rig.setPos(0, 0, -95)
-        self.animated_rig.pose('walk', 0)
+        # self.animated_rig.setPos(0, 0, -95)
 
-        # self.control_rig = ControlJointRig('walking', VBase4(1.0, 0.75, 0.5, 1.0))
-        # self.control_rig.setRoot('Hips')
-        # self.control_rig.reparentTo(self.render)
-        # self.control_rig.matchPose(self.animated_rig)
-        # self.control_rig.matchRoot(self.animated_rig)
+        self.physical_rig = RigidBodyRig(self.animated_rig)
+        self.physical_rig.reparentTo(self.render)
+        self.physical_rig.setCollideMask(BitMask32.bit(1))
+        self.physical_rig.attachRigidBodies(self.world)
+        self.physical_rig.attachConstraints(self.world)
 
-        self.rigidbody_rig = RigidBodyRig(self.animated_rig)
-        self.rigidbody_rig.reparentTo(self.render)
-        self.rigidbody_rig.setCollideMask(BitMask32.bit(1))
-        self.rigidbody_rig.attachRigidBodies(self.world)
-        self.rigidbody_rig.attachConstraints(self.world)
-        # self.rigidbody_rig.attachCubes(self.loader)
+        self.control_rig = ControlJointRig('walking')
+        # self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
+        self.control_rig.setRoot('Hips')
+        self.control_rig.reparentTo(self.render)
 
         self.disable_collisions()
 
+        # self.animated_rig.pose('walk', 0)
+        # self.control_rig.matchPose(self.animated_rig)
+        # self.physical_rig.matchPose(self.animated_rig)
+        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        # self.control_rig.matchPhysicalPose(self.render, self.loader, self.physical_rig)
+
         self.accept('escape', sys.exit)
-        self.taskMgr.add(self.update, 'update')
+        # self.taskMgr.add(self.update, 'update')
 
     def disable_collisions(self):
         for i in range(32):
@@ -77,8 +80,8 @@ class App(ShowBase):
         return lens
 
     def setupCamera(self, width, height):
-        self.cam.setPos(-200, -100, 0)
-        self.cam.lookAt(0, -100, 0)
+        self.cam.setPos(0, -200, 0)
+        self.cam.lookAt(0, 0, 0)
         self.cam.node().setLens(self.createLens(width / height))
 
     def createLighting(self):
@@ -112,14 +115,5 @@ class App(ShowBase):
         return np
 
     def update(self, task):
-        frame_count = globalClock.getFrameCount()
-
-        if frame_count % self.babble_count == 0:
-            self.animated_rig.pose('walk', int(frame_count / self.babble_count))
-            self.rigidbody_rig.matchPose(self.animated_rig)
-
-        self.rigidbody_rig.babble(-500.0, 500.0)
-
-        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 60.0)
-
-        return task.cont
+        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        return task.done

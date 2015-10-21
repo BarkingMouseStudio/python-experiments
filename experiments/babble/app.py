@@ -29,22 +29,33 @@ class App(ShowBase):
         globalClock.set_mode(ClockObject.MNonRealTime)
         globalClock.set_dt(0.02) # 20ms per frame
 
-        light = DirectionalLight('light')
-        light_np = self.render.attach_new_node(light)
-        self.render.set_light(light_np)
+        self.setBackgroundColor(0.9, 0.9, 0.9)
+        self.createLighting()
 
         if not headless:
-            self.cam.set_pos(-300, -100, 100)
-            self.cam.look_at(0, -100, 100)
-            self.cam.node().set_lens(create_lens(width / height))
+            self.setupCamera(width, height)
 
-        # inputs
-        self.accept('escape', sys.exit)
+        self.world = BulletWorld()
+        self.world.setGravity(Vec3(0, 0, -9.81))
+        self.setupDebug()
+        self.createPlane()
 
-        # animated rig (cannot have control joints)
-        self.animated_rig = Actor('walking.egg', { 'walk': 'walking-animation.egg' })
-        self.animated_rig.reparent_to(self.render)
-        self.animated_rig.set_pos(0, 0, 0)
+        self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
+        self.animated_rig.setRoot('Hips')
+        self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
+        self.animated_rig.reparentTo(self.render)
+        self.animated_rig.setPos(0, 0, -95)
+
+        self.physical_rig = RigidBodyRig(self.animated_rig)
+        self.physical_rig.reparentTo(self.render)
+        self.physical_rig.setCollideMask(BitMask32.bit(1))
+        self.physical_rig.attachRigidBodies(self.world)
+        self.physical_rig.attachConstraints(self.world)
+
+        self.disable_collisions()
+
+        self.animated_rig.pose('walk', 0)
+        self.physical_rig.matchPose(self.animated_rig)
 
         self.frame_count = self.animated_rig.getNumFrames('walk')
         self.babble_count = 10
@@ -54,40 +65,72 @@ class App(ShowBase):
 
         print self.train_count, self.test_count
 
-        self.animated_joint_list = []
-        walk_joints(self.animated_rig, self.animated_rig.getPartBundle('modelRoot'), self.animated_joint_list, None, lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
-        self.animated_joint_list = [(node, parent) for node, parent in self.animated_joint_list if node.get_name() not in excluded_joints]
-        draw_joints(self.animated_joint_list, (0.5, 0.75, 1.0))
-
-        self.max_joint_angles = np.array(get_max_joint_angles(self.animated_rig, self.animated_joint_list, 'walk'))
-        print 'max joint angle', self.max_joint_angles.max()
-
-        # rig with control joints (prevents animation)
-        self.control_rig = Actor('walking.egg', { 'walk': 'walking-animation.egg' })
-        self.control_rig.reparent_to(self.render)
-        self.control_rig.set_pos(0, 0, 0)
-
-        self.exposed_joint_list = []
-        walk_joints(self.control_rig, self.control_rig.getPartBundle('modelRoot'), self.exposed_joint_list, None, lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
-        self.exposed_joint_list = [(node, parent) for node, parent in self.exposed_joint_list if node.get_name() not in excluded_joints]
-        draw_joints(self.exposed_joint_list, (1.0, 0.75, 0.5))
-
-        self.control_joint_list = []
-        walk_joints(self.control_rig, self.control_rig.getPartBundle('modelRoot'), self.control_joint_list, None, lambda actor, part: actor.controlJoint(None, 'modelRoot', part.get_name()))
-        self.control_joint_list = [(node, parent) for node, parent in self.control_joint_list if node.get_name() not in excluded_joints]
-
-        self.animated_rig.pose('walk', 0)
-        self.animated_rig.update(force=True)
-        match_pose(self.animated_joint_list, self.control_joint_list)
-        apply_control_joints(self.control_joint_list, self.exposed_joint_list)
-
         self.X_train = []
         self.Y_train = []
 
         self.X_test = []
         self.Y_test = []
 
+        self.accept('escape', sys.exit)
         self.taskMgr.add(self.update, 'update')
+
+    def disable_collisions(self):
+        for i in range(32):
+            self.world.setGroupCollisionFlag(i, i, False)
+        self.world.setGroupCollisionFlag(0, 1, True)
+
+    def setupDebug(self):
+        node = BulletDebugNode('Debug')
+        node.showWireframe(True)
+        node.showConstraints(True)
+        node.showBoundingBoxes(False)
+        node.showNormals(False)
+
+        self.world.setDebugNode(node)
+        np = self.render.attachNewNode(node)
+        np.show()
+
+    def createLens(self, aspect_ratio, fov=60.0, near=1.0, far=1000.0):
+        lens = PerspectiveLens()
+        lens.setFov(fov)
+        lens.setAspectRatio(aspect_ratio)
+        lens.setNearFar(near, far)
+        return lens
+
+    def setupCamera(self, width, height):
+        self.cam.setPos(-200, -100, 0)
+        self.cam.lookAt(0, -100, 0)
+        self.cam.node().setLens(self.createLens(width / height))
+
+    def createLighting(self):
+        light = DirectionalLight('light')
+        light.set_color(VBase4(0.2, 0.2, 0.2, 1))
+
+        np = self.render.attach_new_node(light)
+        np.setPos(0, -200, 0)
+        np.lookAt(0, 0, 0)
+
+        self.render.set_light(np)
+
+        light = AmbientLight('ambient')
+        light.set_color(VBase4(0.4, 0.4, 0.4, 1))
+
+        np = self.render.attachNewNode(light)
+
+        self.render.setLight(np)
+
+    def createPlane(self):
+        rb = BulletRigidBodyNode('Ground')
+        rb.addShape(BulletPlaneShape(Vec3(0, 0, 1), 1))
+        rb.setFriction(1.0)
+
+        np = self.render.attachNewNode(rb)
+        np.setPos(Vec3(0, 0, -100))
+        np.setCollideMask(BitMask32.bit(0))
+
+        self.world.attachRigidBody(rb)
+
+        return np
 
     def save(self):
         print 'saving...', self.save_path
@@ -99,49 +142,22 @@ class App(ShowBase):
 
     def generate(self, count):
         if count % self.babble_count == 0:
-            self.animated_rig.pose('walk', int(count / self.babble_count) % self.num_frames)
-            self.animated_rig.update(force=True)
-            match_pose(self.animated_joint_list, self.control_joint_list)
-            apply_control_joints(self.control_joint_list, self.exposed_joint_list)
+            self.animated_rig.pose('walk', int(count / self.babble_count))
+            self.physical_rig.matchPose(self.animated_rig)
 
-            self.prev_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos() for node, parent in self.exposed_joint_list]
-            self.prev_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr() for node, parent in self.exposed_joint_list]
+        joint_positions = self.physical_rig.getJointPositions() / 200.0
+        joint_rotations = self.physical_rig.getJointRotations() / 180.0
+        linear_velocities = self.physical_rig.getLinearVelocities() / 400.0
+        angular_velocities = self.physical_rig.getAngularVelocities() / 180.0
 
-        joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos() for node, parent in self.exposed_joint_list]
-        joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr() for node, parent in self.exposed_joint_list]
+        Y = self.physical_rig.babble() / 10000.0
 
-        linear_velocities = [joint_position - prev_joint_position for joint_position, prev_joint_position in zip(joint_positions, self.prev_joint_positions)]
-        angular_velocities = [joint_rotation - prev_joint_rotation for joint_rotation, prev_joint_rotation in zip(joint_rotations, self.prev_joint_rotations)]
+        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
 
-        rotations = []
-        for i, node_parent in enumerate(self.control_joint_list):
-            node, parent = node_parent
-            max_joint_angle = self.max_joint_angles[i]
-
-            local_rotation = np.random.uniform(-max_joint_angle, max_joint_angle, 3)
-
-            rotate_node(node, *local_rotation)
-            rotations.append(local_rotation)
-        apply_control_joints(self.control_joint_list, self.exposed_joint_list)
-
-        next_joint_positions = [node.get_pos(parent) if parent is not None else node.get_pos() for node, parent in self.exposed_joint_list]
-        next_joint_rotations = [node.get_hpr(parent) if parent is not None else node.get_hpr() for node, parent in self.exposed_joint_list]
-
-        target_directions = [next_joint_position - joint_position for next_joint_position, joint_position in zip(next_joint_positions, joint_positions)]
-        target_rotations = [next_joint_rotation - joint_rotation for next_joint_rotation, joint_rotation in zip(next_joint_rotations, joint_rotations)]
-
-        joint_positions = flatten_vectors(joint_positions) / 20.0
-        joint_rotations = flatten_vectors(joint_rotations) / 180.0
-        linear_velocities = flatten_vectors(linear_velocities) / 20.0
-        angular_velocities = get_angle_vec(flatten_vectors(angular_velocities)) / 180.0
-        target_directions = flatten_vectors(target_directions) / 1.0
-        target_rotations = get_angle_vec(flatten_vectors(target_rotations)) / 180.0
+        target_directions = self.physical_rig.getTargetDirections(joint_positions) / 200.0
+        target_rotations = self.physical_rig.getTargetRotations(joint_rotations) / 180.0
 
         X = np.concatenate([joint_positions, joint_rotations, linear_velocities, angular_velocities, target_directions, target_rotations])
-        Y = np.concatenate(rotations) / self.max_joint_angles.max()
-
-        self.prev_joint_positions = joint_positions
-        self.prev_joint_rotations = joint_rotations
 
         return X, Y
 

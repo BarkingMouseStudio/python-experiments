@@ -41,6 +41,7 @@ def main():
     loadPrcFileData('', 'win-size %d %d' % (args['--width'], args['--height']))
     loadPrcFileData('', 'audio-library-name null') # suppress warning
     loadPrcFileData('', 'model-path %s' % model_path)
+    loadPrcFileData('', 'bullet-filter-algorithm groups-mask')
 
     if args['--headless']:
         loadPrcFileData('', 'window-type none')

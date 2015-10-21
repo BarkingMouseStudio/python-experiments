@@ -1,164 +1,211 @@
 excluded_joints = ["LeftHandIndex1", "LeftHandIndex2", "LeftHandIndex3", "LeftHandMiddle1", "LeftHandMiddle2", "LeftHandMiddle3", "LeftHandPinky1", "LeftHandPinky2", "LeftHandPinky3", "LeftHandRing1", "LeftHandRing2", "LeftHandRing3", "LeftHandThumb1", "LeftHandThumb2", "LeftHandThumb3", "RightHandIndex1", "RightHandIndex2", "RightHandIndex3", "RightHandMiddle1", "RightHandMiddle2", "RightHandMiddle3", "RightHandPinky1", "RightHandPinky2", "RightHandPinky3", "RightHandRing1", "RightHandRing2", "RightHandRing3", "RightHandThumb1", "RightHandThumb2", "RightHandThumb3"]
 
-center_joints = {
-    "Spine": 1 + 4 + 4,
-    "Spine1": 1,
-    "Spine2": 1 + 4 + 4,
-    "Neck": 1,
-    "Neck1": 1,
-    "Head": 1
-}
-
 joints_config = {
 
-  # CNS
+    # CNS
 
-  "Spine": {
-    "mass": 1,
-    "joints": {
-        "Spine1": {},
-        "LeftUpLeg": {
-            "offset_parent": (0, -1, 0),
-            "offset_child": (0, -1, 0),
+    "Hips": {
+        "mass": 1,
+        "joints": {
+            "Spine": {
+                "type": "cone",
+                "limit": (90, 90, 180),
+                "offset_parent": (0, -1, 0),
+                "offset_child": (0, -1, 0),
+            },
+            "LeftUpLeg": {
+                "type": "cone",
+                "limit": (90, 90, 180),
+                "offset_parent": (1, 0, 0),
+                "offset_child": (0, -1, 0),
+            },
+            "RightUpLeg": {
+                "type": "cone",
+                "limit": (90, 90, 180),
+                "offset_parent": (-1, 0, 0),
+                "offset_child": (0, -1, 0),
+            },
         },
-        "RightUpLeg": {
-            "offset_parent": (0, -1, 0),
-            "offset_child": (0, -1, 0),
-        },
-    }
-  },
+    },
 
-  "Spine1": {
-    "mass": 1,
-    "joints": {
-        "Spine2": {}
-    }
-  },
+    "Spine": {
+        "joints": {
+            "Spine1": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            },
+        }
+    },
 
-  "Spine2": {
-    "mass": 1,
-    "joints": {
-        "Neck": {},
-        "LeftShoulder": {},
-        "RightShoulder": {},
-    }
-  },
+    "Spine1": {
+        "joints": {
+            "Spine2": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
 
-  "Neck": {
-    "mass": 1,
-    "joints": {
-        "Neck1": {}
-    }
-  },
+    "Spine2": {
+        "joints": {
+            "Neck": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            },
+            "LeftShoulder": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            },
+            "RightShoulder": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            },
+        }
+    },
 
-  "Neck1": {
-    "mass": 1,
-    "joints": {
-        "Head": {}
-    }
-  },
+    "Neck": {
+        "joints": {
+            "Neck1": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
 
-  # Left Leg
+    "Neck1": {
+        "joints": {
+            "Head": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
 
-  "LeftUpLeg": {
-    "mass": 1,
-    "joints": {
-        "LeftLeg": {}
-    }
-  },
-  "LeftLeg": {
-    "mass": 1,
-    "joints": {
-        "LeftFoot": {}
-    }
-  },
-  "LeftFoot": {
-    "mass": 1,
-    "joints": {
-        "LeftToeBase": {}
-    }
-  },
+    # Left Leg
 
-  # Right Leg
+    "LeftUpLeg": {
+        "joints": {
+            "LeftLeg": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
+    "LeftLeg": {
+        "joints": {
+            "LeftFoot": {
+                "type": "hinge",
+                "axis_parent": (1, 0, 0),
+                "axis_child": (1, 0, 0),
+                "limit": (-180, 0)
+            }
+        }
+    },
+    "LeftFoot": {
+        "joints": {
+            "LeftToeBase": {
+                "type": "hinge",
+                "axis_parent": (1, 0, 0),
+                "axis_child": (1, 0, 0),
+                "limit": (45, 135)
+            }
+        }
+    },
 
-  "RightUpLeg": {
-    "mass": 1,
-    "joints": {
-        "RightLeg": {}
-    }
-  },
-  "RightLeg": {
-    "mass": 1,
-    "joints": {
-        "RightFoot": {}
-    }
-  },
-  "RightFoot": {
-    "mass": 1,
-    "joints": {
-        "RightToeBase": {}
-    }
-  },
+    # Right Leg
 
-  # Left Arm
+    "RightUpLeg": {
+        "joints": {
+            "RightLeg": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
+    "RightLeg": {
+        "joints": {
+            "RightFoot": {
+                "type": "hinge",
+                "axis_parent": (1, 0, 0),
+                "axis_child": (1, 0, 0),
+                "limit": (-180, 0)
+            }
+        }
+    },
+    "RightFoot": {
+        "joints": {
+            "RightToeBase": {
+                "type": "hinge",
+                "axis_parent": (1, 0, 0),
+                "axis_child": (1, 0, 0),
+                "limit": (45, 135)
+            }
+        }
+    },
 
-  "LeftShoulder": {
-    "mass": 1,
-    "joints": {
-        "LeftArm": {}
-    }
-  },
-  "LeftArm": {
-    "mass": 1,
-    "joints": {
-        "LeftForeArm": {}
-    }
-  },
-  "LeftForeArm": {
-    "mass": 1,
-    "joints": {
-        "LeftHand": {}
-    }
-  },
+    # Left Arm
 
-  # Right Arm
+    "LeftShoulder": {
+        "joints": {
+            "LeftArm": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
+    "LeftArm": {
+        "joints": {
+            "LeftForeArm": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
+    "LeftForeArm": {
+        "joints": {
+            "LeftHand": {
+                "type": "hinge",
+                "axis_parent": (1, 0, 0),
+                "axis_child": (1, 0, 0),
+                "limit": (0, 180)
+            }
+        }
+    },
 
-  "RightShoulder": {
-    "mass": 1,
-    "joints": {
-        "RightArm": {}
-    }
-  },
-  "RightArm": {
-    "mass": 1,
-    "joints": {
-        "RightForeArm": {}
-    }
-  },
-  "RightForeArm": {
-    "mass": 1,
-    "joints": {
-        "RightHand": {}
-    }
-  },
+    # Right Arm
 
-  # Extremities
+    "RightShoulder": {
+        "joints": {
+            "RightArm": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
+    "RightArm": {
+        "joints": {
+            "RightForeArm": {
+                "type": "cone",
+                "limit": (90, 90, 360)
+            }
+        }
+    },
+    "RightForeArm": {
+        "joints": {
+            "RightHand": {
+                "type": "hinge",
+                "axis_parent": (-1, 0, 0),
+                "axis_child": (-1, 0, 0),
+                "limit": (0, 180)
+            }
+        }
+    },
 
-  "LeftToeBase": {
-    "mass": 1,
-  },
-  "RightToeBase": {
-    "mass": 1,
-  },
+    # Extremities
 
-  "LeftHand": {
-    "mass": 1,
-  },
-  "RightHand": {
-    "mass": 1,
-  },
-
-  "Head": {
-    "mass": 1,
-  },
+    "LeftToeBase": {},
+    "RightToeBase": {},
+    "LeftHand": {},
+    "RightHand": {},
+    "Head": {}
 }

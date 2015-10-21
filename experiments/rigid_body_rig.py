@@ -1,53 +1,76 @@
 import random
+import numpy as np
 
 from panda3d.core import NodePath, Vec3
 from pandac.PandaModules import CharacterJoint
 
-from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode, BulletSphericalConstraint
+from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode, BulletSphericalConstraint, BulletHingeConstraint, BulletConeTwistConstraint
 from pandac.PandaModules import CharacterJoint
 
-from .utils.physics_utils import create_constraints, create_colliders
-from .config import joints_config, excluded_joints, center_joints
+from .utils.physics_utils import create_constraints, create_colliders, get_joint_pairs
+from .utils.actor_utils import match_pose
+from .utils.math_utils import get_angle_vec
+from .config import joints_config, excluded_joints
 
 class RigidBodyRig:
 
-    def __init__(self, control_rig):
+    def __init__(self, pose_rig):
         self.root = NodePath('root')
 
-        self.colliders = create_colliders(self.root, control_rig.exposed_joints, joints_config)
-        self.constraints = create_constraints(self.get_joint_pairs())
+        self.colliders = list(create_colliders(self.root, pose_rig.exposed_joints, joints_config))
+        self.constraints = list(create_constraints(self.root, get_joint_pairs(self.root, joints_config)))
+        self.collider_parents = list(self.parentColliders(pose_rig.exposed_joints))
+
+    def parentColliders(self, exposed_joints):
+        for node, parent in exposed_joints:
+            node_collider = self.root.find(node.getName())
+            if parent is not None:
+                parent_collider = self.root.find(parent.getName())
+                yield node_collider, parent_collider
+            else:
+                yield node_collider, None
 
     def attachCubes(self, loader):
         for collider in self.colliders:
-            scale = collider.node().get_shape(0).getHalfExtentsWithMargin()
+            scale = collider.node().getShape(0).getHalfExtentsWithMargin()
             model = loader.loadModel('cube.egg')
             model.reparentTo(collider)
             model.setScale(scale)
 
-    def apply_virtual_forces(self, gravity):
-        for joint_name, mass in center_joints.iteritems():
-            rb = self.root.find(joint_name).node()
-            rb.applyCentralForce(-gravity * mass)
-
-    def babble(self, torque_min, torque_max):
-        for child in self.root.getChildren():
-            T_local = Vec3(0, 0, random.random() * 10000.0)
-            T_world = child.getQuat(self.root).xform(T_local)
-            child.node().applyTorque(T_world)
+    def babble(self):
+        # TODO: restrict torque as a function of mass
+        torques = [np.random.uniform(-5000.0, 5000.0, size=3) for collider in self.colliders]
+        for collider, T_raw in zip(self.colliders, torques):
+            T_local = Vec3(*T_raw)
+            T_world = collider.getQuat(self.root).xform(T_local)
+            collider.node().applyTorque(T_world)
+        return np.concatenate(torques)
 
     def matchPose(self, pose_rig):
-        for node, parent in pose_rig.exposed_joints:
-            if parent is None:
+        for pose_joint_pair, control_joint_pair in zip(pose_joints, control_joints):
+            pose_joint, pose_joint_parent = pose_joint_pair
+            control_joint, control_joint_parent = control_joint_pair
+
+            if pose_joint_parent is None:
+                # get target pose position and orientation in local space
+                pose_pos = pose_joint.getPos()
+                pose_hpr = pose_joint.getHpr()
+
+                # apply to control joint
+                control_joint.setPosHpr(pose_pos, pose_hpr)
                 continue
 
-            box_np = self.root.find(node.get_name())
-            box_rb = box_np.node()
+            if is_relative:
+                # get target pose position and orientation in local space
+                pose_pos = pose_joint.getPos(pose_joint_parent)
+                pose_hpr = pose_joint.getHpr(pose_joint_parent)
+            else:
+                pose_pos = pose_joint.getPos()
+                pose_hpr = pose_joint.getHpr()
 
-            box_np.reparentTo(parent)
-            box_np.setPos(node.get_pos(parent) / 2.0)
-            box_np.lookAt(node)
-
-            box_np.reparentTo(self.root)
+            # apply to control joint
+            control_joint.setPosHpr(pose_pos, pose_hpr)
+            match_pose(pose_rig.exposed_joints, self.collider_parents)
 
     def reparentTo(self, other):
         self.root.reparentTo(other)
@@ -63,16 +86,3 @@ class RigidBodyRig:
     def attachConstraints(self, world):
         for constraint in self.constraints:
             world.attachConstraint(constraint, linked_collision=True)
-
-    def get_joint_pairs(self):
-        for key_parent in joints_config:
-            joint_config_parent = joints_config[key_parent]
-            parent = self.root.find(key_parent)
-            rb_parent = parent.node()
-
-            if 'joints' in joint_config_parent:
-                for key_child in joint_config_parent['joints']:
-                    joint_config_child = joint_config_parent['joints'][key_child]
-                    other = self.root.find(key_child)
-                    rb_child = other.node()
-                    yield (joint_config_child, rb_parent, rb_child)

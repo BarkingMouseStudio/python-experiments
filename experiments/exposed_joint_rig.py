@@ -5,14 +5,15 @@ from .config import excluded_joints
 
 class ExposedJointRig:
 
-    def __init__(self, model_name, animations, color):
+    def __init__(self, model_name, animations):
         self.actor = Actor(model_name, animations)
 
         exposed_joint_gen = walk_joints(self.actor, self.actor.getPartBundle('modelRoot'), \
-            lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
+            lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.getName()))
 
         self.exposed_joints = filter_joints(exposed_joint_gen, excluded_joints)
 
+    def createLines(self, color):
         create_lines(self.exposed_joints, color)
 
     def getNumFrames(self, animation_name):
@@ -22,7 +23,7 @@ class ExposedJointRig:
         self.actor.setPlayRate(play_rate, animation_name)
 
     def setRoot(self, name):
-        self.root = [node for node, parent in self.exposed_joints if node.get_name() == name][0]
+        self.root = [node for node, parent in self.exposed_joints if node.getName() == name][0]
 
     def setPos(self, x, y, z):
         self.actor.setPos(x, y, z)

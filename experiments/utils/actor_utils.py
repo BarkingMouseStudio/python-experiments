@@ -1,6 +1,20 @@
 from panda3d.core import LineSegs
 from pandac.PandaModules import CharacterJoint
 
+def get_parents(exposed_joints):
+    child_parent = dict()
+    for child, parent in exposed_joints:
+        if parent is not None:
+            child_parent[child.getName()] = parent.getName()
+
+    parents = dict()
+    for child, parent in child_parent.iteritems():
+        parents[child] = child_parents = []
+        while parent is not None:
+            child_parents.append(parent)
+            parent = child_parent[parent] if parent in child_parent else None
+    return parents
+
 def walk_joints(actor, part, fn, prev=None):
     if isinstance(part, CharacterJoint):
         curr = fn(actor, part)

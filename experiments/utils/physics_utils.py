@@ -1,21 +1,27 @@
 import math
 
-from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode, BulletSphericalConstraint
-from panda3d.core import Vec3, Point3
+from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode, BulletSphericalConstraint, BulletHingeConstraint, BulletConeTwistConstraint
+from panda3d.core import Vec3, Point3, TransformState
+
+def get_joint_pairs(root, joints_config):
+    for key_parent in joints_config:
+        joint_config_parent = joints_config[key_parent]
+        parent = root.find(key_parent)
+
+        if 'joints' in joint_config_parent:
+            for key_child in joint_config_parent['joints']:
+                joint_config_child = joint_config_parent['joints'][key_child]
+                other = root.find(key_child)
+                yield (joint_config_child, parent, other)
 
 def create_colliders(root, exposed_joints, joints_config):
-    colliders = []
-
     for node, parent in exposed_joints:
-        if parent is None:
-            continue
-
         node_name = node.get_name()
 
         joint_config = joints_config[node_name] if node_name in joints_config else None
-        mass = joint_config['mass']
+        mass = joint_config['mass'] if joint_config is not None and 'mass' in joint_config else 1
 
-        joint_pos = node.get_pos(parent)
+        joint_pos = node.getPos(parent) if parent is not None else node.getPos()
         joint_midpoint = joint_pos / 2.0
         joint_length = joint_pos.length()
         joint_width = joint_length / 2.0 if joint_length > 0 else mass
@@ -30,23 +36,23 @@ def create_colliders(root, exposed_joints, joints_config):
         box_rb.setAngularDamping(0.9)
         box_rb.setFriction(0.2)
 
-        # align rigidbody with relative position node
-        np = parent.attachNewNode(box_rb)
-        np.setPos(joint_midpoint)
-        np.lookAt(node)
-
-        # reparent to root
         box_np = root.attachNewNode(box_rb)
-        np.removeNode() # cleanup relative position node
 
-        colliders.append(box_np)
+        # align rigidbody with relative position node
+        if parent is not None:
+            box_np.setPos(parent, joint_midpoint)
+            box_np.lookAt(parent, node.getPos(parent))
+        else:
+            box_np.setPos(joint_midpoint)
+            box_np.lookAt(node)
 
-    return colliders
+        yield box_np
 
-def create_constraints(joint_pairs):
-    constraints = []
+def create_constraints(root, joint_pairs):
+    for joint_config, parent, child in joint_pairs:
+        rb_parent = parent.node()
+        rb_child = child.node()
 
-    for joint_config, rb_parent, rb_child in joint_pairs:
         extents_parent = rb_parent.get_shape(0).getHalfExtentsWithMargin()
         extents_child = rb_child.get_shape(0).getHalfExtentsWithMargin()
 
@@ -66,9 +72,26 @@ def create_constraints(joint_pairs):
                               offset_child_y * extents_child.getY(), \
                               offset_child_z * extents_child.getZ())
 
-        constraint = BulletSphericalConstraint(rb_parent, rb_child, offset_parent, offset_child)
+        if joint_config['type'] == 'hinge':
+            axis_parent = Vec3(*joint_config['axis_parent'])
+            axis_child = Vec3(*joint_config['axis_child'])
+
+            constraint = BulletHingeConstraint(rb_parent, rb_child, offset_parent, offset_child, \
+                axis_parent, axis_child)
+
+            low, high = joint_config['limit']
+            constraint.setLimit(low, high)
+        elif joint_config['type'] == 'cone':
+            frame_parent = TransformState.makePosHpr(offset_parent, Vec3(90, 0, 0))
+            frame_child = TransformState.makePosHpr(offset_child, Vec3(90, 0, 0))
+
+            constraint = BulletConeTwistConstraint(rb_parent, rb_child, frame_parent, frame_child)
+
+            swing1, swing2, twist = joint_config['limit']
+            constraint.setLimit(swing1, swing2, twist)
+        elif joint_config['type'] == 'spherical':
+            constraint = BulletSphericalConstraint(rb_parent, rb_child, offset_parent, offset_child)
+
         constraint.setDebugDrawSize(3.0)
 
-        constraints.append(constraint)
-
-    return constraints
+        yield constraint
