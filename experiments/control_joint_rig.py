@@ -37,7 +37,55 @@ class ControlJointRig:
         match_pose(pose_rig.exposed_joints, self.control_joints, True)
 
     def matchPhysicalPose(self, render, loader, physical_rig):
-        match_pose(physical_rig.collider_parents, self.control_joints, True)
+        for collider_parent_pair, node_parent_pair in zip(physical_rig.collider_parents, self.control_joints):
+            collider, collider_parent = collider_parent_pair
+            node, node_parent = node_parent_pair
+
+            if node_parent is not None:
+                half_extents_parent = collider_parent.node().getShape(0).getHalfExtentsWithMargin()
+                half_extents_child = collider.node().getShape(0).getHalfExtentsWithMargin()
+
+                print '+=++=++=++=++=++=++=+'
+                print node, node.getPos(), node.getHpr()
+
+                # rotation_node = node.getQuat()
+                # endpoint_node = node.getPos()
+                # print rotation_node.xform(endpoint_node)
+
+                rotation_parent = collider_parent.getQuat()
+                midpoint_parent = collider_parent.getPos()
+                endpoint_parent = midpoint_parent + rotation_parent.xform(Vec3(0, half_extents_parent.getY(), 0))
+
+                rotation = collider.getQuat()
+                midpoint = collider.getPos()
+                endpoint = midpoint + rotation.xform(Vec3(0, half_extents_child.getY(), 0))
+
+                model = loader.loadModel('cube.egg')
+
+                if collider.getName() == 'RightArm':
+                    model.setColor(1, 0, 0)
+
+                if collider.getName() == 'RightForeArm':
+                    model.setColor(0, 1, 0)
+
+                if collider.getName() == 'RightHand':
+                    model.setColor(0, 0, 1)
+
+                model.reparentTo(render)
+                model.setPos(midpoint)
+                model.setQuat(rotation)
+
+                # print (endpoint_parent - endpoint).length(), node.getPos().length()
+
+                # rotation_parent.invertInPlace()
+                # rotation.invertInPlace()
+                print collider.getName(), collider_parent.getName()
+                print node.getName(), node_parent.getName()
+
+                # node.setPos(endpoint)
+                # node.setHpr(collider.getHpr(collider_parent))
+            # else:
+            #     node.setPosHpr(collider.getPos(), collider.getHpr())
 
     def getJointPositions(self):
         return np.concatenate([node.getPos(parent) if parent is not None else node.getPos() for node, parent in self.exposed_joints])

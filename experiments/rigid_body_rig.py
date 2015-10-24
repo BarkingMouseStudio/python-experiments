@@ -18,7 +18,7 @@ class RigidBodyRig:
         self.root = NodePath('root')
 
         self.colliders = list(create_colliders(self.root, pose_rig.exposed_joints, joints_config))
-        self.constraints = list(create_constraints(self.root, get_joint_pairs(self.root, joints_config)))
+        # self.constraints = list(create_constraints(self.root, get_joint_pairs(self.root, joints_config)))
         self.collider_parents = list(self.parentColliders(pose_rig.exposed_joints))
 
     def parentColliders(self, exposed_joints):
@@ -47,30 +47,18 @@ class RigidBodyRig:
         return np.concatenate(torques)
 
     def matchPose(self, pose_rig):
-        for pose_joint_pair, control_joint_pair in zip(pose_joints, control_joints):
-            pose_joint, pose_joint_parent = pose_joint_pair
-            control_joint, control_joint_parent = control_joint_pair
+        for node_parent_pair, collider_parent_pair in zip(pose_rig.exposed_joints, self.collider_parents):
+            node, node_parent = node_parent_pair
+            collider, collider_parent = collider_parent_pair
 
-            if pose_joint_parent is None:
-                # get target pose position and orientation in local space
-                pose_pos = pose_joint.getPos()
-                pose_hpr = pose_joint.getHpr()
+            if node_parent is not None:
+                midpoint = node.getPos(node_parent) / 2.0
+                endpoint = node.getPos(node_parent)
 
-                # apply to control joint
-                control_joint.setPosHpr(pose_pos, pose_hpr)
-                continue
-
-            if is_relative:
-                # get target pose position and orientation in local space
-                pose_pos = pose_joint.getPos(pose_joint_parent)
-                pose_hpr = pose_joint.getHpr(pose_joint_parent)
+                collider.setPos(node_parent, midpoint)
+                collider.lookAt(node_parent, endpoint)
             else:
-                pose_pos = pose_joint.getPos()
-                pose_hpr = pose_joint.getHpr()
-
-            # apply to control joint
-            control_joint.setPosHpr(pose_pos, pose_hpr)
-            match_pose(pose_rig.exposed_joints, self.collider_parents)
+                collider.setPosHpr(node.getPos(), node.getHpr())
 
     def reparentTo(self, other):
         self.root.reparentTo(other)
@@ -84,5 +72,6 @@ class RigidBodyRig:
             world.attachRigidBody(collider.node())
 
     def attachConstraints(self, world):
-        for constraint in self.constraints:
-            world.attachConstraint(constraint, linked_collision=True)
+        # for constraint in self.constraints:
+        #     world.attachConstraint(constraint, linked_collision=True)
+        pass

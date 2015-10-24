@@ -36,7 +36,6 @@ class App(ShowBase):
         self.animated_rig.setRoot('Hips')
         # self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
         self.animated_rig.reparentTo(self.render)
-        # self.animated_rig.setPos(0, 0, -95)
 
         self.physical_rig = RigidBodyRig(self.animated_rig)
         self.physical_rig.reparentTo(self.render)
@@ -44,15 +43,19 @@ class App(ShowBase):
         self.physical_rig.attachRigidBodies(self.world)
         self.physical_rig.attachConstraints(self.world)
 
-        self.control_rig = ControlJointRig('walking')
+        # self.control_rig = ControlJointRig('walking')
         # self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
-        self.control_rig.setRoot('Hips')
-        self.control_rig.reparentTo(self.render)
+        # self.control_rig.setRoot('Hips')
+        # self.control_rig.reparentTo(self.render)
+
+        # self.control_rig.actor.ls()
 
         self.disable_collisions()
 
         # self.animated_rig.pose('walk', 0)
         # self.control_rig.matchPose(self.animated_rig)
+        # self.control_rig.matchRoot(self.animated_rig)
+
         # self.physical_rig.matchPose(self.animated_rig)
         self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
         # self.control_rig.matchPhysicalPose(self.render, self.loader, self.physical_rig)

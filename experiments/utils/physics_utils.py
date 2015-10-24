@@ -38,13 +38,11 @@ def create_colliders(root, exposed_joints, joints_config):
 
         box_np = root.attachNewNode(box_rb)
 
-        # align rigidbody with relative position node
         if parent is not None:
             box_np.setPos(parent, joint_midpoint)
             box_np.lookAt(parent, node.getPos(parent))
         else:
-            box_np.setPos(joint_midpoint)
-            box_np.lookAt(node)
+            box_np.setPosHpr(node.getPos(), node.getHpr())
 
         yield box_np
 

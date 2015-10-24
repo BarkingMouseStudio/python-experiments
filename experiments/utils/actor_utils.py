@@ -50,25 +50,19 @@ def match_pose(pose_joints, control_joints, is_relative=False):
         pose_joint, pose_joint_parent = pose_joint_pair
         control_joint, control_joint_parent = control_joint_pair
 
-        if pose_joint_parent is None:
-            # get target pose position and orientation in local space
-            pose_pos = pose_joint.getPos()
-            pose_hpr = pose_joint.getHpr()
-
-            # apply to control joint
+        if pose_joint_parent is not None:
+            if is_relative:
+                pose_pos = pose_joint.getPos(pose_joint_parent)
+                pose_hpr = pose_joint.getHpr(pose_joint_parent)
+            else:
+                pose_pos = pose_joint.getPos()
+                pose_hpr = pose_joint.getHpr()
             control_joint.setPosHpr(pose_pos, pose_hpr)
-            continue
-
-        if is_relative:
-            # get target pose position and orientation in local space
-            pose_pos = pose_joint.getPos(pose_joint_parent)
-            pose_hpr = pose_joint.getHpr(pose_joint_parent)
         else:
             pose_pos = pose_joint.getPos()
             pose_hpr = pose_joint.getHpr()
-
-        # apply to control joint
-        control_joint.setPosHpr(pose_pos, pose_hpr)
+            control_joint.setPosHpr(pose_pos, pose_hpr)
+            continue
 
 # def get_max_joint_angles(actor, joints, animation_name):
 #     max_angles = [0 for joint in joints]
