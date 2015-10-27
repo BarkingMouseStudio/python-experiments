@@ -19,8 +19,8 @@ def get_joint_pairs(root, joints_config):
             child = root.find(child_name)
             yield (child_config, node, child)
 
-def create_colliders(root, exposed_joints, joints_config):
-    for node, parent in exposed_joints:
+def create_colliders(root, pose_rig, joints_config):
+    for node, parent in pose_rig.exposed_joints:
         if node.getName() not in joints_config:
             continue
 
@@ -41,7 +41,7 @@ def create_colliders(root, exposed_joints, joints_config):
         box_rb.setFriction(0.2)
 
         for joint in joints:
-            child_node, child_parent = next((child_node, child_parent) for child_node, child_parent in exposed_joints if child_node.getName() == joint)
+            child_node, child_parent = next((child_node, child_parent) for child_node, child_parent in pose_rig.exposed_joints if child_node.getName() == joint)
 
             pos = child_node.getPos(child_parent)
             width = pos.length() / 2.0
@@ -56,13 +56,16 @@ def create_colliders(root, exposed_joints, joints_config):
                 transform = TransformState.makePosHpr(child_node.getPos(child_parent) / 2.0, quat.getHpr())
             else:
                 transform = TransformState.makeHpr(quat.getHpr())
+                # transform = TransformState.makeIdentity()
 
             box_rb.addShape(shape, transform)
 
         box_np = root.attachNewNode(box_rb)
 
         if len(joints) > 1:
-            box_np.setPosHpr(node.getPos(), node.getHpr())
+            pos = node.getPos(pose_rig.actor)
+            hpr = node.getHpr(pose_rig.actor)
+            box_np.setPosHpr(root, pos, hpr)
         else:
             box_np.setPos(child_parent, child_node.getPos(child_parent) / 2.0)
             box_np.lookAt(child_parent, child_node.getPos(child_parent))

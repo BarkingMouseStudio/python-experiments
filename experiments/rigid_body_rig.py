@@ -15,10 +15,13 @@ from .config import joints_config, excluded_joints
 
 class RigidBodyRig:
 
-    def __init__(self, pose_rig):
+    def __init__(self):
         self.root = NodePath('root')
 
-        self.colliders = list(create_colliders(self.root, pose_rig.exposed_joints, joints_config))
+    def createColliders(self, pose_rig):
+        self.colliders = list(create_colliders(self.root, pose_rig, joints_config))
+
+    def createConstraints(self):
         self.constraints = list(create_constraints(self.root, get_joint_pairs(self.root, joints_config)))
 
     def setPos(self, *pos):
@@ -56,6 +59,9 @@ class RigidBodyRig:
                 child_node, child_parent = next((child_node, child_parent) for child_node, child_parent in pose_rig.exposed_joints if child_node.getName() == joint)
                 box_np.setPos(child_parent, child_node.getPos(child_parent) / 2.0)
                 box_np.lookAt(child_parent, child_node.getPos(child_parent))
+
+            box_np.node().setLinearVelocity(Vec3.zero())
+            box_np.node().setAngularVelocity(Vec3.zero())
 
     def setPos(self, *pos):
         self.root.setPos(*pos)

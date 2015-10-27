@@ -33,11 +33,14 @@ class ControlJointRig:
         for node, parent in self.control_joints:
             collider = physical_rig.root.find(node.getName())
 
-            if not collider or parent is None:
+            if not collider:
                 continue
 
-            collider_parent = physical_rig.root.find(parent.getName())
-            node.setHpr(collider.getHpr(collider_parent))
+            if parent is not None:
+                collider_parent = physical_rig.root.find(parent.getName())
+                node.setHpr(collider.getHpr(collider_parent))
+            else:
+                node.setPosHpr(collider.getPos(), collider.getHpr())
 
     def getJointPositions(self):
         return np.concatenate([node.getPos(parent) if parent is not None else node.getPos() for node, parent in self.exposed_joints])

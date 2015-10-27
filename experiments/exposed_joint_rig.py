@@ -30,3 +30,7 @@ class ExposedJointRig:
     def pose(self, animation_name, frame):
         self.actor.pose(animation_name, frame)
         self.actor.update(force=True)
+
+    def loop(self, animation_name):
+        self.actor.loop(animation_name)
+        self.actor.update(force=True)
