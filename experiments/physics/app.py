@@ -8,12 +8,14 @@ import sys
 
 from direct.showbase.ShowBase import ShowBase
 
-from panda3d.core import VBase4, Vec3, PerspectiveLens, ClockObject, DirectionalLight, AmbientLight, BitMask32
+from panda3d.core import VBase4, Vec3, PerspectiveLens, TransformState, ClockObject, DirectionalLight, AmbientLight, BitMask32
 from panda3d.bullet import BulletWorld, BulletPlaneShape, BulletRigidBodyNode, BulletDebugNode
 
 from ..exposed_joint_rig import ExposedJointRig
 from ..control_joint_rig import ControlJointRig
 from ..rigid_body_rig import RigidBodyRig
+
+from panda3d.bullet import get_bullet_version, BulletBoxShape
 
 class App(ShowBase):
 
@@ -33,35 +35,36 @@ class App(ShowBase):
         self.createPlane()
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
-        self.animated_rig.setRoot('Hips')
-        # self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
         self.animated_rig.reparentTo(self.render)
+        self.animated_rig.setPos(0, 0, -98)
+        self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
 
         self.physical_rig = RigidBodyRig(self.animated_rig)
         self.physical_rig.reparentTo(self.render)
+        self.animated_rig.setPos(0, 0, -98)
         self.physical_rig.setCollideMask(BitMask32.bit(1))
         self.physical_rig.attachRigidBodies(self.world)
         self.physical_rig.attachConstraints(self.world)
 
-        # self.control_rig = ControlJointRig('walking')
-        # self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
-        # self.control_rig.setRoot('Hips')
-        # self.control_rig.reparentTo(self.render)
-
-        # self.control_rig.actor.ls()
+        self.control_rig = ControlJointRig('walking')
+        self.control_rig.reparentTo(self.render)
+        self.physical_rig.setPos(0, 0, -98)
+        self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
 
         self.disable_collisions()
 
-        # self.animated_rig.pose('walk', 0)
-        # self.control_rig.matchPose(self.animated_rig)
-        # self.control_rig.matchRoot(self.animated_rig)
-
-        # self.physical_rig.matchPose(self.animated_rig)
-        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-        # self.control_rig.matchPhysicalPose(self.render, self.loader, self.physical_rig)
+        self.is_paused = True
 
         self.accept('escape', sys.exit)
-        # self.taskMgr.add(self.update, 'update')
+        self.accept('space', self.toggle_pause)
+
+    def toggle_pause(self):
+        if self.is_paused:
+            self.is_paused = False
+            self.taskMgr.add(self.update, 'update')
+        else:
+            self.is_paused = True
+            self.taskMgr.remove('update')
 
     def disable_collisions(self):
         for i in range(32):
@@ -71,7 +74,9 @@ class App(ShowBase):
     def setupDebug(self):
         node = BulletDebugNode('Debug')
         node.showWireframe(True)
+
         self.world.setDebugNode(node)
+
         np = self.render.attachNewNode(node)
         np.show()
 
@@ -118,5 +123,9 @@ class App(ShowBase):
         return np
 
     def update(self, task):
+        self.animated_rig.pose('walk', globalClock.getFrameCount())
+        self.physical_rig.matchPose(self.animated_rig)
+        self.control_rig.matchPhysicalPose(self.physical_rig)
+
         self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-        return task.done
+        return task.cont

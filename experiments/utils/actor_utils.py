@@ -15,15 +15,35 @@ def get_parents(exposed_joints):
             parent = child_parent[parent] if parent in child_parent else None
     return parents
 
-def walk_joints(actor, part, fn, prev=None):
+def walk_joints(actor, part, part_parent=None):
+    if isinstance(part, CharacterJoint):
+        yield part, part_parent
+
+    for part_child in part.getChildren():
+        for child_part, child_part_parent in walk_joints(actor, part_child, part):
+            yield child_part, child_part_parent
+
+def map_joints(actor, part, fn, prev=None):
     if isinstance(part, CharacterJoint):
         curr = fn(actor, part)
         yield curr, prev
         prev = curr
 
-    for part_child in part.get_children():
-        for next_curr, next_prev in walk_joints(actor, part_child, fn, prev):
+    for part_child in part.getChildren():
+        for next_curr, next_prev in map_joints(actor, part_child, fn, prev):
             yield next_curr, next_prev
+
+# def walk_joints_children(actor, part, fn, joint_parent=None):
+#     if isinstance(part, CharacterJoint):
+#         joint = fn(actor, part)
+#
+#     for child_part in part.getChildren():
+#         joint_children = list(walk_joints_children(actor, child_part, fn, joint))
+#         for child_joint, child_joint_parent, child_children in children
+#             yield child_joint, child_joint_parent, child_children
+#
+#     if joint is not None:
+#         yield joint, joint_parent, joint_children
 
 def create_lines(joints, color, thickness=5.0):
     for node, parent in joints:

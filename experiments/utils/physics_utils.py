@@ -1,48 +1,71 @@
 import math
 
 from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode, BulletSphericalConstraint, BulletHingeConstraint, BulletConeTwistConstraint
-from panda3d.core import Vec3, Point3, TransformState
+from panda3d.core import Vec3, Point3, Quat, TransformState, lookAt, RigidBodyCombiner
 
 def get_joint_pairs(root, joints_config):
-    for key_parent in joints_config:
-        joint_config_parent = joints_config[key_parent]
-        parent = root.find(key_parent)
+    for node_name, joint_config in joints_config.iteritems():
+        node = root.find(node_name)
 
-        if 'joints' in joint_config_parent:
-            for key_child in joint_config_parent['joints']:
-                joint_config_child = joint_config_parent['joints'][key_child]
-                other = root.find(key_child)
-                yield (joint_config_child, parent, other)
+        if 'joints' not in joint_config:
+            continue
+
+        joints = joint_config['joints']
+
+        for child_name, child_config in joints.iteritems():
+            if child_config['type'] is None:
+                continue
+
+            child = root.find(child_name)
+            yield (child_config, node, child)
 
 def create_colliders(root, exposed_joints, joints_config):
     for node, parent in exposed_joints:
-        node_name = node.get_name()
+        if node.getName() not in joints_config:
+            continue
 
-        joint_config = joints_config[node_name] if node_name in joints_config else None
-        mass = joint_config['mass'] if joint_config is not None and 'mass' in joint_config else 1
+        joint_config = joints_config[node.getName()]
+        if 'joints' not in joint_config:
+            continue
 
-        joint_pos = node.getPos(parent) if parent is not None else node.getPos()
-        joint_midpoint = joint_pos / 2.0
-        joint_length = joint_pos.length()
-        joint_width = joint_length / 2.0 if joint_length > 0 else mass
+        joints = joint_config['joints']
+        if len(joints) == 0:
+            continue
 
-        dims = math.sqrt(mass)
-        box_scale = Vec3(dims, joint_width, dims)
+        mass = 9
 
-        box_rb = BulletRigidBodyNode(node_name)
+        box_rb = BulletRigidBodyNode(node.getName())
         box_rb.setMass(mass)
-        box_rb.addShape(BulletBoxShape(box_scale))
         box_rb.setLinearDamping(0.2)
         box_rb.setAngularDamping(0.9)
         box_rb.setFriction(0.2)
 
+        for joint in joints:
+            child_node, child_parent = next((child_node, child_parent) for child_node, child_parent in exposed_joints if child_node.getName() == joint)
+
+            pos = child_node.getPos(child_parent)
+            width = pos.length() / 2.0
+            dims = math.sqrt(mass)
+            scale = Vec3(dims, width, dims)
+
+            shape = BulletBoxShape(scale)
+
+            quat = Quat()
+            lookAt(quat, child_node.getPos(child_parent), Vec3.up())
+            if len(joints) > 1:
+                transform = TransformState.makePosHpr(child_node.getPos(child_parent) / 2.0, quat.getHpr())
+            else:
+                transform = TransformState.makeHpr(quat.getHpr())
+
+            box_rb.addShape(shape, transform)
+
         box_np = root.attachNewNode(box_rb)
 
-        if parent is not None:
-            box_np.setPos(parent, joint_midpoint)
-            box_np.lookAt(parent, node.getPos(parent))
-        else:
+        if len(joints) > 1:
             box_np.setPosHpr(node.getPos(), node.getHpr())
+        else:
+            box_np.setPos(child_parent, child_node.getPos(child_parent) / 2.0)
+            box_np.lookAt(child_parent, child_node.getPos(child_parent))
 
         yield box_np
 
@@ -54,21 +77,23 @@ def create_constraints(root, joint_pairs):
         extents_parent = rb_parent.get_shape(0).getHalfExtentsWithMargin()
         extents_child = rb_child.get_shape(0).getHalfExtentsWithMargin()
 
-        offset_parent = (0, 1, 0)
         if 'offset_parent' in joint_config:
             offset_parent = joint_config['offset_parent']
-        offset_parent_x, offset_parent_y, offset_parent_z = offset_parent
-        offset_parent = Point3(offset_parent_x * extents_parent.getX(), \
-                               offset_parent_y * extents_parent.getY(), \
-                               offset_parent_z * extents_parent.getZ())
+        else:
+            offset_parent = (0, 1, 0)
+            offset_parent_x, offset_parent_y, offset_parent_z = offset_parent
+            offset_parent = Point3(offset_parent_x * extents_parent.getX(), \
+                                   offset_parent_y * extents_parent.getY(), \
+                                   offset_parent_z * extents_parent.getZ())
 
-        offset_child = (0, -1, 0)
         if 'offset_child' in joint_config:
             offset_child = joint_config['offset_child']
-        offset_child_x, offset_child_y, offset_child_z = offset_child
-        offset_child = Point3(offset_child_x * extents_child.getX(), \
-                              offset_child_y * extents_child.getY(), \
-                              offset_child_z * extents_child.getZ())
+        else:
+            offset_child = (0, -1, 0)
+            offset_child_x, offset_child_y, offset_child_z = offset_child
+            offset_child = Point3(offset_child_x * extents_child.getX(), \
+                                  offset_child_y * extents_child.getY(), \
+                                  offset_child_z * extents_child.getZ())
 
         if joint_config['type'] == 'hinge':
             axis_parent = Vec3(*joint_config['axis_parent'])

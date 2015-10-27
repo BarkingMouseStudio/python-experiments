@@ -4,26 +4,26 @@ joints_config = {
 
     # CNS
 
+    # Hips Spine LVecBase3f(1, 4.68006, 1) LVecBase3f(1, 8.12742, 1)
+    # Hips LeftUpLeg LVecBase3f(1, 4.68006, 1) LVecBase3f(1, 20.8829, 1)
+    # Hips RightUpLeg LVecBase3f(1, 4.68006, 1) LVecBase3f(1, 20.8829, 1)
+
     "Hips": {
-        "mass": 1,
         "joints": {
             "Spine": {
-                "type": "cone",
-                "limit": (90, 90, 180),
-                "offset_parent": (0, -1, 0),
-                "offset_child": (0, -1, 0),
+                "type": "spherical",
+                "offset_parent": (0, 8.75134, -3.32052),
+                "offset_child": (0, -8.1274, 0),
             },
             "LeftUpLeg": {
-                "type": "cone",
-                "limit": (90, 90, 180),
-                "offset_parent": (1, 0, 0),
-                "offset_child": (0, -1, 0),
+                "type": "spherical",
+                "offset_parent": (9.6338, -2.821, 1.66026),
+                "offset_child": (0, -20.8829, 0),
             },
             "RightUpLeg": {
-                "type": "cone",
-                "limit": (90, 90, 180),
-                "offset_parent": (-1, 0, 0),
-                "offset_child": (0, -1, 0),
+                "type": "spherical",
+                "offset_parent": (-9.6338, -2.821, 1.66026),
+                "offset_child": (0, -20.8829, 0),
             },
         },
     },
@@ -31,34 +31,51 @@ joints_config = {
     "Spine": {
         "joints": {
             "Spine1": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             },
         }
     },
+
+    # Spine1 Spine2 LPoint3f(0, 13.7007, 0)
+    # Spine1 Spine2 LVecBase3f(1, 6.85034, 1) LVecBase3f(1, 6.2423, 1)
 
     "Spine1": {
         "joints": {
             "Spine2": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical",
+                "offset_parent": (0, 6.8503, 0),
+                "offset_child": (0, 0, 0),
             }
         }
     },
 
+    # print node.getName(), child_node.getName(), child_node.getPos(child_parent)
+    # Spine2 RightShoulder LPoint3f(-6.14139, 10.8672, -0.228481)
+    # Spine2 Neck LPoint3f(-0.0016115, 14.5373, 0.45673)
+    # Spine2 LeftShoulder LPoint3f(6.14301, 10.8686, -0.228251)
+
+
+    # print parent.getName(), child.getName(), extents_parent, extents_child
+    # Spine2 RightShoulder LVecBase3f(1, 6.2423, 1) LVecBase3f(1, 6.25128, 1)
+    # Spine2 Neck LVecBase3f(1, 6.2423, 1) LVecBase3f(1, 2.21894, 1)
+    # Spine2 LeftShoulder LVecBase3f(1, 6.2423, 1) LVecBase3f(1, 6.24931, 1)
+
     "Spine2": {
         "joints": {
             "Neck": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical",
+                "offset_parent": (-0.0016115, 14.5373, 0.45673),
+                "offset_child": (0, -2.2189, 0),
             },
             "LeftShoulder": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical",
+                "offset_parent": (6.14301, 10.8686, -0.228251),
+                "offset_child": (0, -6.2493, 0),
             },
             "RightShoulder": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical",
+                "offset_parent": (-6.14139, 10.8672, -0.228481),
+                "offset_child": (0, -6.2512, 0),
             },
         }
     },
@@ -66,8 +83,7 @@ joints_config = {
     "Neck": {
         "joints": {
             "Neck1": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             }
         }
     },
@@ -75,8 +91,7 @@ joints_config = {
     "Neck1": {
         "joints": {
             "Head": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": None
             }
         }
     },
@@ -86,28 +101,21 @@ joints_config = {
     "LeftUpLeg": {
         "joints": {
             "LeftLeg": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             }
         }
     },
     "LeftLeg": {
         "joints": {
             "LeftFoot": {
-                "type": "hinge",
-                "axis_parent": (1, 0, 0),
-                "axis_child": (1, 0, 0),
-                "limit": (-180, 0)
+                "type": "spherical"
             }
         }
     },
     "LeftFoot": {
         "joints": {
             "LeftToeBase": {
-                "type": "hinge",
-                "axis_parent": (1, 0, 0),
-                "axis_child": (1, 0, 0),
-                "limit": (45, 135)
+                "type": None
             }
         }
     },
@@ -117,28 +125,21 @@ joints_config = {
     "RightUpLeg": {
         "joints": {
             "RightLeg": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             }
         }
     },
     "RightLeg": {
         "joints": {
             "RightFoot": {
-                "type": "hinge",
-                "axis_parent": (1, 0, 0),
-                "axis_child": (1, 0, 0),
-                "limit": (-180, 0)
+                "type": "spherical"
             }
         }
     },
     "RightFoot": {
         "joints": {
             "RightToeBase": {
-                "type": "hinge",
-                "axis_parent": (1, 0, 0),
-                "axis_child": (1, 0, 0),
-                "limit": (45, 135)
+                "type": None
             }
         }
     },
@@ -148,26 +149,21 @@ joints_config = {
     "LeftShoulder": {
         "joints": {
             "LeftArm": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             }
         }
     },
     "LeftArm": {
         "joints": {
             "LeftForeArm": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             }
         }
     },
     "LeftForeArm": {
         "joints": {
             "LeftHand": {
-                "type": "hinge",
-                "axis_parent": (1, 0, 0),
-                "axis_child": (1, 0, 0),
-                "limit": (0, 180)
+                "type": None
             }
         }
     },
@@ -177,35 +173,22 @@ joints_config = {
     "RightShoulder": {
         "joints": {
             "RightArm": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             }
         }
     },
     "RightArm": {
         "joints": {
             "RightForeArm": {
-                "type": "cone",
-                "limit": (90, 90, 360)
+                "type": "spherical"
             }
         }
     },
     "RightForeArm": {
         "joints": {
             "RightHand": {
-                "type": "hinge",
-                "axis_parent": (-1, 0, 0),
-                "axis_child": (-1, 0, 0),
-                "limit": (0, 180)
+                "type": None
             }
         }
-    },
-
-    # Extremities
-
-    "LeftToeBase": {},
-    "RightToeBase": {},
-    "LeftHand": {},
-    "RightHand": {},
-    "Head": {}
+    }
 }
