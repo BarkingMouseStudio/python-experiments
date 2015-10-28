@@ -32,7 +32,7 @@ def create_colliders(root, pose_rig, joints_config):
         if len(joints) == 0:
             continue
 
-        mass = 9
+        mass = 1
 
         box_rb = BulletRigidBodyNode(node.getName())
         box_rb.setMass(mass)
@@ -45,8 +45,7 @@ def create_colliders(root, pose_rig, joints_config):
 
             pos = child_node.getPos(child_parent)
             width = pos.length() / 2.0
-            dims = math.sqrt(mass)
-            scale = Vec3(dims, width, dims)
+            scale = Vec3(3, width, 3)
 
             shape = BulletBoxShape(scale)
 

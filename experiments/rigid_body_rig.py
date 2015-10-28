@@ -27,13 +27,13 @@ class RigidBodyRig:
     def setPos(self, *pos):
         self.root.setPos(*pos)
 
-    # def babble(self):
-    #     torques = [np.random.uniform(-5000.0, 5000.0, size=3) for collider in self.colliders]
-    #     for collider, T_raw in zip(self.colliders, torques):
-    #         T_local = Vec3(*T_raw)
-    #         T_world = collider.getQuat(self.root).xform(T_local)
-    #         collider.node().applyTorque(T_world)
-    #     return np.concatenate(torques)
+    def babble(self):
+        torques = [np.random.uniform(-9000.0, 9000.0, size=3) for collider in self.colliders]
+        for collider, T_raw in zip(self.colliders, torques):
+            T_local = Vec3(*T_raw)
+            T_world = collider.getQuat(self.root).xform(T_local)
+            collider.node().applyTorque(T_world)
+        return np.concatenate(torques)
 
     def matchPose(self, pose_rig):
         for node, parent in pose_rig.exposed_joints:

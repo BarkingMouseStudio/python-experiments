@@ -1,8 +1,11 @@
+import numpy as np
+
 from direct.actor.Actor import Actor
 
 from panda3d.core import Quat, Vec3
 
 from .utils.actor_utils import map_joints, create_lines, match_pose, filter_joints
+from .utils.math_utils import get_angle_vec
 from .config import excluded_joints
 
 class ControlJointRig:
@@ -42,8 +45,16 @@ class ControlJointRig:
             else:
                 node.setPosHpr(collider.getPos(), collider.getHpr())
 
+        self.actor.update(force=True)
+
     def getJointPositions(self):
         return np.concatenate([node.getPos(parent) if parent is not None else node.getPos() for node, parent in self.exposed_joints])
 
     def getJointRotations(self):
         return np.concatenate([node.getHpr(parent) if parent is not None else node.getHpr() for node, parent in self.exposed_joints])
+
+    def getLinearVelocities(self, prev_joint_positions):
+        return self.getJointPositions() - prev_joint_positions
+
+    def getAngularVelocities(self, prev_joint_rotations):
+        return get_angle_vec(self.getJointRotations() - prev_joint_rotations)

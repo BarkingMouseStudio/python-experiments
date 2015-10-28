@@ -30,7 +30,7 @@ class App(ShowBase):
         self.setupCamera(width, height)
 
         self.world = BulletWorld()
-        self.world.setGravity(Vec3(0, 0, -9.81 * 10))
+        self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
         self.setupDebug()
         self.createPlane()
 
@@ -39,8 +39,6 @@ class App(ShowBase):
         self.animated_rig.setPos(0, 0, -98)
         self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
         self.animated_rig.pose('walk', 0)
-        # self.animated_rig.setPlayRate(0.5, 'walk')
-        # self.animated_rig.loop('walk')
 
         self.physical_rig = RigidBodyRig()
         self.physical_rig.reparentTo(self.render)
@@ -94,8 +92,6 @@ class App(ShowBase):
         return lens
 
     def setupCamera(self, width, height):
-        # self.cam.setPos(0, -200, 0)
-        # self.cam.lookAt(0, 0, 0)
         self.cam.setPos(-200, -100, 0)
         self.cam.lookAt(0, -100, 0)
         self.cam.node().setLens(self.createLens(width / height))
@@ -131,7 +127,7 @@ class App(ShowBase):
         return np
 
     def update(self, task):
-        self.animated_rig.pose('walk', globalClock.getFrameCount())
+        self.animated_rig.pose('walk', globalClock.getFrameCount() * 0.5)
         self.physical_rig.matchPose(self.animated_rig)
         self.control_rig.matchPhysicalPose(self.physical_rig)
         self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)

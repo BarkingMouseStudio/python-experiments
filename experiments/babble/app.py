@@ -8,12 +8,14 @@ import sys
 
 from direct.showbase.ShowBase import ShowBase
 
-from panda3d.core import VBase4, Vec3, PerspectiveLens, ClockObject, DirectionalLight, AmbientLight, BitMask32
+from panda3d.core import VBase4, Vec3, PerspectiveLens, TransformState, ClockObject, DirectionalLight, AmbientLight, BitMask32
 from panda3d.bullet import BulletWorld, BulletPlaneShape, BulletRigidBodyNode, BulletDebugNode
 
 from ..exposed_joint_rig import ExposedJointRig
 from ..control_joint_rig import ControlJointRig
 from ..rigid_body_rig import RigidBodyRig
+
+from panda3d.bullet import get_bullet_version, BulletBoxShape
 
 class App(ShowBase):
 
@@ -36,26 +38,37 @@ class App(ShowBase):
             self.setupCamera(width, height)
 
         self.world = BulletWorld()
-        self.world.setGravity(Vec3(0, 0, -9.81))
+        self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
         self.setupDebug()
         self.createPlane()
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
-        self.animated_rig.setRoot('Hips')
-        self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
         self.animated_rig.reparentTo(self.render)
-        self.animated_rig.setPos(0, 0, -95)
+        self.animated_rig.setPos(0, 0, -98)
+        self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
+        self.animated_rig.pose('walk', 0)
 
-        self.physical_rig = RigidBodyRig(self.animated_rig)
+        self.physical_rig = RigidBodyRig()
         self.physical_rig.reparentTo(self.render)
+        self.physical_rig.setPos(0, 0, -98)
+        self.physical_rig.createColliders(self.animated_rig)
+        self.physical_rig.createConstraints()
         self.physical_rig.setCollideMask(BitMask32.bit(1))
         self.physical_rig.attachRigidBodies(self.world)
         self.physical_rig.attachConstraints(self.world)
 
+        self.control_rig = ControlJointRig('walking')
+        self.control_rig.reparentTo(self.render)
+        self.control_rig.setPos(0, 0, -98)
+        self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
+        self.control_rig.matchPose(self.animated_rig)
+
         self.disable_collisions()
 
-        self.animated_rig.pose('walk', 0)
+        self.animated_rig.pose('walk', globalClock.getFrameCount() * 0.5)
         self.physical_rig.matchPose(self.animated_rig)
+        self.control_rig.matchPhysicalPose(self.physical_rig)
+        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
 
         self.frame_count = self.animated_rig.getNumFrames('walk')
         self.babble_count = 10
@@ -82,11 +95,9 @@ class App(ShowBase):
     def setupDebug(self):
         node = BulletDebugNode('Debug')
         node.showWireframe(True)
-        node.showConstraints(True)
-        node.showBoundingBoxes(False)
-        node.showNormals(False)
 
         self.world.setDebugNode(node)
+
         np = self.render.attachNewNode(node)
         np.show()
 
@@ -144,20 +155,31 @@ class App(ShowBase):
         if count % self.babble_count == 0:
             self.animated_rig.pose('walk', int(count / self.babble_count))
             self.physical_rig.matchPose(self.animated_rig)
+            self.control_rig.matchPhysicalPose(self.physical_rig)
 
-        joint_positions = self.physical_rig.getJointPositions() / 200.0
-        joint_rotations = self.physical_rig.getJointRotations() / 180.0
-        linear_velocities = self.physical_rig.getLinearVelocities() / 400.0
-        angular_velocities = self.physical_rig.getAngularVelocities() / 180.0
+            self.prev_joint_positions = self.control_rig.getJointPositions()
+            self.prev_joint_rotations = self.control_rig.getJointRotations()
+        else:
+            self.control_rig.matchPhysicalPose(self.physical_rig)
 
-        Y = self.physical_rig.babble() / 10000.0
+        joint_positions = self.control_rig.getJointPositions()
+        joint_rotations = self.control_rig.getJointRotations()
+
+        linear_velocities = self.control_rig.getLinearVelocities(self.prev_joint_positions)
+        angular_velocities = self.control_rig.getAngularVelocities(self.prev_joint_rotations)
+
+        Y = self.physical_rig.babble()
 
         self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        self.control_rig.matchPhysicalPose(self.physical_rig)
 
-        target_directions = self.physical_rig.getTargetDirections(joint_positions) / 200.0
-        target_rotations = self.physical_rig.getTargetRotations(joint_rotations) / 180.0
+        target_directions = self.control_rig.getLinearVelocities(joint_positions)
+        target_rotations = self.control_rig.getAngularVelocities(joint_rotations)
 
         X = np.concatenate([joint_positions, joint_rotations, linear_velocities, angular_velocities, target_directions, target_rotations])
+
+        self.prev_joint_positions = joint_positions
+        self.prev_joint_rotations = joint_rotations
 
         return X, Y
 
