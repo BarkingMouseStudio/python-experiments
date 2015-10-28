@@ -48,14 +48,14 @@ class App(ShowBase):
         self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
         self.animated_rig.pose('walk', 0)
 
-        self.physical_rig = RigidBodyRig()
-        self.physical_rig.reparentTo(self.render)
-        self.physical_rig.setPos(0, 0, -98)
-        self.physical_rig.createColliders(self.animated_rig)
-        self.physical_rig.createConstraints()
-        self.physical_rig.setCollideMask(BitMask32.bit(1))
-        self.physical_rig.attachRigidBodies(self.world)
-        self.physical_rig.attachConstraints(self.world)
+        # self.physical_rig = RigidBodyRig()
+        # self.physical_rig.reparentTo(self.render)
+        # self.physical_rig.setPos(0, 0, -98)
+        # self.physical_rig.createColliders(self.animated_rig)
+        # self.physical_rig.createConstraints()
+        # self.physical_rig.setCollideMask(BitMask32.bit(1))
+        # self.physical_rig.attachRigidBodies(self.world)
+        # self.physical_rig.attachConstraints(self.world)
 
         self.control_rig = ControlJointRig('walking')
         self.control_rig.reparentTo(self.render)
@@ -66,9 +66,10 @@ class App(ShowBase):
         self.disable_collisions()
 
         self.animated_rig.pose('walk', globalClock.getFrameCount() * 0.5)
-        self.physical_rig.matchPose(self.animated_rig)
-        self.control_rig.matchPhysicalPose(self.physical_rig)
-        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        # self.physical_rig.matchPose(self.animated_rig)
+        # self.control_rig.matchPhysicalPose(self.physical_rig)
+        self.control_rig.matchPose(self.animated_rig)
+        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
 
         self.frame_count = self.animated_rig.getNumFrames('walk')
         self.babble_count = 10
@@ -154,27 +155,33 @@ class App(ShowBase):
     def generate(self, count):
         if count % self.babble_count == 0:
             self.animated_rig.pose('walk', int(count / self.babble_count))
-            self.physical_rig.matchPose(self.animated_rig)
-            self.control_rig.matchPhysicalPose(self.physical_rig)
+
+            # self.physical_rig.matchPose(self.animated_rig)
+            # self.control_rig.matchPhysicalPose(self.physical_rig)
+            self.control_rig.matchPose(self.animated_rig)
 
             self.prev_joint_positions = self.control_rig.getJointPositions()
             self.prev_joint_rotations = self.control_rig.getJointRotations()
-        else:
-            self.control_rig.matchPhysicalPose(self.physical_rig)
+        # else:
+        #     self.control_rig.matchPose(self.animated_rig)
 
         joint_positions = self.control_rig.getJointPositions()
         joint_rotations = self.control_rig.getJointRotations()
 
-        linear_velocities = self.control_rig.getLinearVelocities(self.prev_joint_positions)
-        angular_velocities = self.control_rig.getAngularVelocities(self.prev_joint_rotations)
+        linear_velocities = self.control_rig.getLinearVelocities(joint_positions, self.prev_joint_positions)
+        angular_velocities = self.control_rig.getAngularVelocities(joint_rotations, self.prev_joint_rotations)
 
-        Y = self.physical_rig.babble()
+        # torques = self.physical_rig.babble()
+        Y = self.control_rig.babble()
 
-        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-        self.control_rig.matchPhysicalPose(self.physical_rig)
+        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        # self.control_rig.matchPhysicalPose(self.physical_rig)
 
-        target_directions = self.control_rig.getLinearVelocities(joint_positions)
-        target_rotations = self.control_rig.getAngularVelocities(joint_rotations)
+        next_joint_positions = self.control_rig.getJointPositions()
+        next_joint_rotations = self.control_rig.getJointRotations()
+
+        target_directions = self.control_rig.getTargetDirections(next_joint_positions, joint_positions)
+        target_rotations = self.control_rig.getTargetRotations(next_joint_rotations, joint_rotations)
 
         X = np.concatenate([joint_positions, joint_rotations, linear_velocities, angular_velocities, target_directions, target_rotations])
 

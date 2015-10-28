@@ -33,4 +33,3 @@ class ExposedJointRig:
 
     def loop(self, animation_name):
         self.actor.loop(animation_name)
-        self.actor.update(force=True)

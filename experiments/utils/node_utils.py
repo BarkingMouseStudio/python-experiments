@@ -1,3 +1,3 @@
 def rotate_node(node, dq):
-    q = node.get_quat()
-    node.set_quat(q * dq)
+    q = node.getQuat()
+    node.setQuat(q * dq)

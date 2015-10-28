@@ -105,18 +105,18 @@ def match_pose(pose_joints, control_joints, is_relative=False):
 #
 #     return max_angles
 
-# def apply_control_joints(control_joint_list, exposed_joint_list):
-#     for control_joint_pair, exposed_joint_pair in zip(control_joint_list, exposed_joint_list):
-#         control_joint, control_joint_parent = control_joint_pair
-#         exposed_joint, exposed_joint_parent = exposed_joint_pair
-#
-#         control_pos = control_joint.getPos()
-#         control_hpr = control_joint.getHpr()
-#
-#         if exposed_joint_parent:
-#             exposed_joint.setPosHpr(exposed_joint_parent, control_pos, control_hpr)
-#         else:
-#             exposed_joint.setPosHpr(control_pos, control_hpr)
+def apply_control_joints(control_joint_list, exposed_joint_list):
+    for control_joint_pair, exposed_joint_pair in zip(control_joint_list, exposed_joint_list):
+        control_joint, control_joint_parent = control_joint_pair
+        exposed_joint, exposed_joint_parent = exposed_joint_pair
+
+        control_pos = control_joint.getPos()
+        control_hpr = control_joint.getHpr()
+
+        if exposed_joint_parent:
+            exposed_joint.setPosHpr(exposed_joint_parent, control_pos, control_hpr)
+        else:
+            exposed_joint.setPosHpr(control_pos, control_hpr)
 
 # def measure_error(control_joint_list, exposed_joint_list):
 #     err = 0.0
