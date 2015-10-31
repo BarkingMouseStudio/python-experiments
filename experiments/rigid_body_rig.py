@@ -10,7 +10,7 @@ from pandac.PandaModules import CharacterJoint
 
 from .utils.physics_utils import create_constraints, create_colliders, get_joint_pairs
 from .utils.actor_utils import match_pose, walk_joints
-from .utils.math_utils import get_angle_vec
+from .utils.math_utils import get_angle_vec, random_spherical
 from .config import joints_config, excluded_joints
 
 class RigidBodyRig:
@@ -28,12 +28,19 @@ class RigidBodyRig:
         self.root.setPos(*pos)
 
     def babble(self):
-        torques = [np.random.uniform(-9000.0, 9000.0, size=3) for collider in self.colliders]
-        for collider, T_raw in zip(self.colliders, torques):
-            T_local = Vec3(*T_raw)
-            T_world = collider.getQuat(self.root).xform(T_local)
-            collider.node().applyTorque(T_world)
-        return np.concatenate(torques)
+        F_all = [random.uniform(-100.0, 100.0) for collider in self.colliders]
+        r_all = [random_spherical() for collider in self.colliders]
+
+        # r_world_all = []
+        for collider, F, r in zip(self.colliders, F_all, r_all):
+            r = Vec3(1, 0, 0)
+            r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
+            # r_world_all.append(r_world)
+
+            collider.node().applyTorqueImpulse(r_world * F)
+
+        # return np.concatenate([np.array(F_all), np.concatenate(r_world_all)])
+        return np.array(F_all)
 
     def matchPose(self, pose_rig):
         for node, parent in pose_rig.exposed_joints:
@@ -80,3 +87,15 @@ class RigidBodyRig:
     def attachConstraints(self, world):
         for constraint in self.constraints:
             world.attachConstraint(constraint, linked_collision=True)
+
+    def getJointPositions(self):
+        return np.concatenate([collider.getPos(self.root) for collider in self.colliders]) # TODO: is root necessary?
+
+    def getJointRotations(self):
+        return np.concatenate([collider.getHpr(self.root) for collider in self.colliders]) # TODO: is root necessary?
+
+    def getLinearVelocities(self):
+        return np.concatenate([collider.node().getLinearVelocity() for collider in self.colliders])
+
+    def getAngularVelocities(self):
+        return np.concatenate([collider.node().getAngularVelocity() for collider in self.colliders])
