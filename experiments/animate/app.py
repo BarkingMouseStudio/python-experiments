@@ -12,27 +12,35 @@ from direct.actor.Actor import Actor
 from panda3d.core import VBase4, Vec3, Quat, PerspectiveLens, ClockObject, DirectionalLight
 from pandac.PandaModules import CharacterJoint, LineSegs
 
-from ..utils import create_lens, walk_joints, draw_joints
+from ..utils.actor_utils import map_joints, create_lines
 
 class App(ShowBase):
 
     def __init__(self, width, height):
         ShowBase.__init__(self)
 
-        globalClock.set_mode(ClockObject.MNonRealTime)
-        globalClock.set_dt(0.02) # 20ms per frame
+        globalClock.setMode(ClockObject.MNonRealTime)
+        globalClock.setDt(0.02) # 20ms per frame
 
-        self.cam.set_pos(0, -200, 0)
-        self.cam.look_at(0, 0, 0)
-        self.cam.node().set_lens(create_lens(width / height))
+        self.cam.setPos(0, -200, 100)
+        self.cam.lookAt(0, 0, 100)
+        self.cam.node().setLens(self.createLens(width / height))
 
-        self.actor = Actor('walking.egg', { 'walk': 'walking-animation.egg' })
+        self.actor = Actor('walking2.egg', { 'walk': 'walking-animation2.egg' })
         self.actor.reparentTo(self.render)
+        self.actor.pose('walk', 0)
 
-        self.animated_joint_list = []
-        walk_joints(self.actor, self.actor.getPartBundle('modelRoot'), self.animated_joint_list, None, lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.get_name()))
-        draw_joints(self.animated_joint_list, (0.5, 0.75, 1.0))
+        exposed_joint_gen = map_joints(self.actor, self.actor.getPartBundle('modelRoot'), \
+            lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.getName()))
+        exposed_joints = list(exposed_joint_gen)
 
-        self.actor.loop('walk')
+        create_lines(exposed_joints, VBase4(0.5, 0.75, 1.0, 1.0))
 
         self.accept('escape', sys.exit)
+
+    def createLens(self, aspect_ratio, fov=60.0, near=1.0, far=1000.0):
+        lens = PerspectiveLens()
+        lens.setFov(fov)
+        lens.setAspectRatio(aspect_ratio)
+        lens.setNearFar(near, far)
+        return lens
