@@ -28,7 +28,7 @@ class App(ShowBase):
 
         if animation_path:
             self.actor = Actor(model_path, { 'animation': animation_path })
-            self.actor.pose('animation', 0)
+            self.actor.loop('animation')
         else:
             self.actor = Actor(model_path)
 

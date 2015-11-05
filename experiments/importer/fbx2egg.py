@@ -76,47 +76,45 @@ def get_anim_layers(scene):
         for i in range(stack.GetMemberCount(fbx.FbxAnimLayer.ClassId)):
             yield stack.GetMember(fbx.FbxAnimLayer.ClassId, i)
 
-def get_curve_values(curve):
-    # for key_index in range(curve.KeyGetCount()):
-    #     yield curve.KeyGetValue(key_index)
-    yield curve.KeyGetValue(0)
-
-def get_curves_channels(curve_node):
-    if curve_node is not None:
-        for i in range(curve_node.GetChannelsCount()):
-            channel = curve_node.GetCurve(i)
-            yield list(get_curve_values(channel))
-
-def get_curve_vectors(fbx_node, curve_node):
-    if curve_node is not None:
-        X = curve_node.GetCurve(curve_node.GetChannelIndex("X")).KeyGetValue(0)
-        Y = curve_node.GetCurve(curve_node.GetChannelIndex("Y")).KeyGetValue(0)
-        Z = curve_node.GetCurve(curve_node.GetChannelIndex("Z")).KeyGetValue(0)
-        yield VBase3D(X, Y, Z)
-
-    # curve_channels = list(get_curves_channels(curve_node))
-    # for channels in zip(*curve_channels):
-    #     yield VBase3D(*channels)
+def get_key_times(curve):
+    for t in range(curve.KeyGetCount() if curve is not None else 0):
+        yield curve.KeyGet(t).GetTime()
 
 def get_transforms(fbx_node, fbx_layer):
-    translation = fbx_node.LclTranslation
-    rotation = fbx_node.LclRotation
-    scaling = fbx_node.LclScaling
-
-    pos_default = VBase3D(*translation.Get())
-    hpr_default = VBase3D(*rotation.Get())
-    scale_default = VBase3D(*scaling.Get())
+    pos_default = VBase3D(*fbx_node.LclTranslation.Get())
+    hpr_default = VBase3D(*fbx_node.LclRotation.Get())
+    scale_default = VBase3D(*fbx_node.LclScaling.Get())
     shear_default = VBase3D(0, 0, 0)
 
-    translation_curve_node = translation.GetCurveNode(fbx_layer)
-    rotation_curve_node = rotation.GetCurveNode(fbx_layer)
-    scaling_curve_node = scaling.GetCurveNode(fbx_layer)
+    translation_curve = fbx_node.LclTranslation.GetCurve(fbx_layer, False)
+    rotation_curve = fbx_node.LclRotation.GetCurve(fbx_layer, False)
+    scaling_curve = fbx_node.LclScaling.GetCurve(fbx_layer, False)
 
-    translations = list(get_curve_vectors(fbx_child, translation_curve_node))
-    rotations = list(get_curve_vectors(fbx_child, rotation_curve_node))
-    scalings = list(get_curve_vectors(fbx_child, scaling_curve_node))
+    translation_times = get_key_times(translation_curve)
+    rotation_times = get_key_times(rotation_curve)
+    scaling_times = get_key_times(scaling_curve)
 
-    order = EggXfmSAnim.getStandardOrder()
+    translations = []
+    for key_time in translation_times:
+        translation = fbx_node.EvaluateLocalTranslation(key_time)
+        translation = VBase3D(translation[0], translation[1], translation[2])
+        translations.append(translation)
+
+    rotations = []
+    for key_time in rotation_times:
+        rotation = fbx_node.EvaluateLocalRotation(key_time)
+        # hpr
+        # rhp
+        rotation = VBase3D(-rotation[2], rotation[0], -rotation[1])
+        rotations.append(rotation)
+
+    scalings = []
+    for key_time in scaling_times:
+        scaling = fbx_node.EvaluateLocalScaling(key_time)
+        scaling = VBase3D(scaling[0], scaling[1], scaling[2])
+        scalings.append(scaling)
+
+    order = EggXfmSAnim.getStandardOrder() # srpht
 
     for pos, hpr, scale in map(None, translations, rotations, scalings):
         pos = pos or pos_default
