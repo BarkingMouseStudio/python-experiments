@@ -16,7 +16,7 @@ from ..utils.actor_utils import map_joints, create_lines
 
 class App(ShowBase):
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, model_path, animation_path):
         ShowBase.__init__(self)
 
         globalClock.setMode(ClockObject.MNonRealTime)
@@ -26,9 +26,13 @@ class App(ShowBase):
         self.cam.lookAt(0, 0, 100)
         self.cam.node().setLens(self.createLens(width / height))
 
-        self.actor = Actor('walking2.egg', { 'walk': 'walking-animation2.egg' })
+        if animation_path:
+            self.actor = Actor(model_path, { 'animation': animation_path })
+            self.actor.pose('animation', 0)
+        else:
+            self.actor = Actor(model_path)
+
         self.actor.reparentTo(self.render)
-        self.actor.pose('walk', 0)
 
         exposed_joint_gen = map_joints(self.actor, self.actor.getPartBundle('modelRoot'), \
             lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.getName()))
