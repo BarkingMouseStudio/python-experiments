@@ -17,8 +17,10 @@ class ControlJointRig:
         control_joint_gen = map_joints(self.actor, self.actor.getPartBundle('modelRoot'), \
             lambda actor, part: actor.controlJoint(None, 'modelRoot', part.getName()))
 
-        self.exposed_joints = filter_joints(exposed_joint_gen, excluded_joints)
-        self.control_joints = filter_joints(control_joint_gen, excluded_joints)
+        self.exposed_joints = list(exposed_joint_gen)
+        self.control_joints = list(control_joint_gen)
+        # self.exposed_joints = filter_joints(exposed_joint_gen, excluded_joints)
+        # self.control_joints = filter_joints(control_joint_gen, excluded_joints)
 
     def createLines(self, color):
         create_lines(self.exposed_joints, color)

@@ -33,18 +33,6 @@ def map_joints(actor, part, fn, prev=None):
         for next_curr, next_prev in map_joints(actor, part_child, fn, prev):
             yield next_curr, next_prev
 
-# def walk_joints_children(actor, part, fn, joint_parent=None):
-#     if isinstance(part, CharacterJoint):
-#         joint = fn(actor, part)
-#
-#     for child_part in part.getChildren():
-#         joint_children = list(walk_joints_children(actor, child_part, fn, joint))
-#         for child_joint, child_joint_parent, child_children in children
-#             yield child_joint, child_joint_parent, child_children
-#
-#     if joint is not None:
-#         yield joint, joint_parent, joint_children
-
 def create_lines(joints, color, thickness=5.0):
     for node, parent in joints:
         if parent is not None:

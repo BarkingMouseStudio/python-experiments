@@ -7,10 +7,13 @@ class ExposedJointRig:
 
     def __init__(self, model_name, animations):
         self.actor = Actor(model_name, animations)
+        self.actor.update(force=True)
 
         exposed_joint_gen = map_joints(self.actor, self.actor.getPartBundle('modelRoot'), \
             lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.getName()))
-        self.exposed_joints = filter_joints(exposed_joint_gen, excluded_joints)
+
+        self.exposed_joints = list(exposed_joint_gen)
+        # self.exposed_joints = filter_joints(exposed_joint_gen, excluded_joints)
 
     def createLines(self, color):
         create_lines(self.exposed_joints, color)
@@ -30,6 +33,9 @@ class ExposedJointRig:
     def pose(self, animation_name, frame):
         self.actor.pose(animation_name, frame)
         self.actor.update(force=True)
+
+    def play(self, animation_name):
+        self.actor.play(animation_name)
 
     def loop(self, animation_name):
         self.actor.loop(animation_name)

@@ -63,9 +63,9 @@ class App(ShowBase):
         # self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
         # self.control_rig.matchPose(self.animated_rig)
 
-        self.disable_collisions()
+        self.disableCollisions()
 
-        self.set_animation_frame(0)
+        self.setAnimationFrame(0)
 
         self.frame_count = self.animated_rig.getNumFrames('walk')
         self.babble_count = 10
@@ -84,7 +84,7 @@ class App(ShowBase):
         self.accept('escape', sys.exit)
         self.taskMgr.add(self.update, 'update')
 
-    def disable_collisions(self):
+    def disableCollisions(self):
         for i in range(32):
             self.world.setGroupCollisionFlag(i, i, False)
         self.world.setGroupCollisionFlag(0, 1, True)
@@ -148,7 +148,7 @@ class App(ShowBase):
         pickle.dump(data, f)
         f.close()
 
-    def set_animation_frame(self, frame):
+    def setAnimationFrame(self, frame):
         self.animated_rig.pose('walk', frame)
 
         self.physical_rig.matchPose(self.animated_rig)
@@ -167,7 +167,7 @@ class App(ShowBase):
 
     def generate(self, count):
         if count % self.babble_count == 0:
-            self.set_animation_frame(int(count / self.babble_count))
+            self.setAnimationFrame(int(count / self.babble_count))
 
         joint_positions = self.physical_rig.getJointPositions()
         joint_rotations = self.physical_rig.getJointRotations()
