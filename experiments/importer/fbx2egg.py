@@ -105,7 +105,6 @@ def get_key_times(curve):
     #     yield curve.KeyGet(0).GetTime()
 
 def normalize_rotation_order(rotation_order, rotation):
-    print(rotation_order)
     return VBase3D(-rotation[2], rotation[0], -rotation[1]) # -r h -p
     # return VBase3D(*rotation)
     # return VBase3D(*rotation_orders[rotation_order](rotation))
@@ -139,36 +138,40 @@ def bake_transforms(fbx_node):
 def get_transforms(fbx_node, fbx_layer):
     rotation_order = fbx_node.GetRotationOrder(fbx.FbxNode.eSourcePivot)
 
-    # translation_default = VBase3D(*fbx_node.LclTranslation.Get())
-    # rotation_default = VBase3D(*fbx_node.LclRotation.Get())
-    # scaling_default = VBase3D(*fbx_node.LclScaling.Get())
-    # shear_default = VBase3D(0, 0, 0)
+    translation_default = VBase3D(*fbx_node.LclTranslation.Get())
+    rotation_default = VBase3D(*fbx_node.LclRotation.Get())
+    scaling_default = VBase3D(*fbx_node.LclScaling.Get())
+    shear_default = VBase3D(0, 0, 0)
 
     translation_curve = fbx_node.LclTranslation.GetCurve(fbx_layer, False)
     rotation_curve = fbx_node.LclRotation.GetCurve(fbx_layer, False)
     scaling_curve = fbx_node.LclScaling.GetCurve(fbx_layer, False)
 
-    # translation_times = get_key_times(translation_curve)
-    # rotation_times = get_key_times(rotation_curve)
-    # scaling_times = get_key_times(scaling_curve)
+    translation_count = translation_curve.KeyGetCount()
+    rotation_count = rotation_curve.KeyGetCount()
+    scaling_count = scaling_curve.KeyGetCount()
 
-    # translations = []
-    # for key_time in translation_times:
-    #     translation = fbx_node.EvaluateLocalTranslation(key_time)
-    #     translation = convert_fbx_vector4(translation)
-    #     translations.append(translation)
-    #
-    # rotations = []
-    # for key_time in rotation_times:
-    #     rotation = fbx_node.EvaluateLocalRotation(key_time)
-    #     rotation = convert_fbx_vector4(rotation)
-    #     rotations.append(rotation)
-    #
-    # scalings = []
-    # for key_time in scaling_times:
-    #     scaling = fbx_node.EvaluateLocalScaling(key_time)
-    #     scaling = convert_fbx_vector4(scaling)
-    #     scalings.append(scaling)
+    translation_times = get_key_times(translation_curve)
+    rotation_times = get_key_times(rotation_curve)
+    scaling_times = get_key_times(scaling_curve)
+
+    translations = []
+    for key_time in translation_times:
+        translation = fbx_node.EvaluateLocalTranslation(key_time)
+        translation = convert_fbx_vector4(translation)
+        translations.append(translation)
+
+    rotations = []
+    for key_time in rotation_times:
+        rotation = fbx_node.EvaluateLocalRotation(key_time)
+        rotation = convert_fbx_vector4(rotation)
+        rotations.append(rotation)
+
+    scalings = []
+    for key_time in scaling_times:
+        scaling = fbx_node.EvaluateLocalScaling(key_time)
+        scaling = convert_fbx_vector4(scaling)
+        scalings.append(scaling)
 
     order = EggXfmSAnim.getStandardOrder() # srpht
 
