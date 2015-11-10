@@ -46,7 +46,6 @@ class FBXManager:
             fbx_node = self.fbx_nodes[name]
 
             if panda_parent is None:
-                self.skeleton_root = fbx_node
                 self.scene.GetRootNode().AddChild(fbx_node)
             else:
                 fbx_parent = self.fbx_nodes[panda_parent.getName()]
@@ -58,7 +57,7 @@ class FBXManager:
 
         curve.KeyModifyBegin()
         curve.KeyAdd(time)
-        curve.KeySet(key_index, time, value, fbx.FbxAnimCurveDef.eInterpolationLinear)
+        curve.KeySet(key_index, time, value, fbx.FbxAnimCurveDef.eInterpolationConstant)
         curve.KeyModifyEnd()
 
     def setPropKeyframe(self, prop, key_index, values):
@@ -75,15 +74,6 @@ class FBXManager:
         curve_y = prop.GetCurve(self.animation_layer, "Y", True)
         curve_z = prop.GetCurve(self.animation_layer, "Z", True)
 
-        # hpr = (-fbx_rotation[2], fbx_rotation[0], -fbx_rotation[1])
-        # h = -x = 2
-        # p = y = 0
-        # r = -z = 1
-
-        # x = p
-        # y = r
-        # z = h
-
         self.addKeyframe(curve_x, key_index, hpr[1])
         self.addKeyframe(curve_y, key_index, hpr[2])
         self.addKeyframe(curve_z, key_index, hpr[0])
@@ -97,11 +87,8 @@ class FBXManager:
             hpr = panda_node.getHpr()
             scale = panda_node.getScale()
 
-            if name == "RightLeg" and key_index == 13:
-                print(hpr)
-
             self.setPropKeyframe(fbx_node.LclTranslation, key_index, pos)
-            self.setPropKeyframeRotation(fbx_node.LclRotation, key_index, hpr)
+            self.setPropKeyframe(fbx_node.LclRotation, key_index, hpr)
             self.setPropKeyframe(fbx_node.LclScaling, key_index, scale)
 
     def save(self, fbx_path):

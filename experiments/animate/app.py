@@ -40,7 +40,7 @@ class App(ShowBase):
         self.canonical.reparentTo(self.render)
         self.canonical.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
 
-        # self.num_frames = self.animation.getNumFrames('animation')
+        self.num_frames = self.canonical.getNumFrames('animation')
         self.setAnimationFrame(0)
 
         self.accept('escape', sys.exit)
@@ -58,7 +58,6 @@ class App(ShowBase):
         self.canonical.pose('animation', frame)
 
     def update(self, task):
-        # frame_count = globalClock.getFrameCount()
-        # self.setAnimationFrame((frame_count / 10) % self.num_frames)
-        self.setAnimationFrame(0)
+        frame_count = globalClock.getFrameCount()
+        self.setAnimationFrame(frame_count % self.num_frames)
         return task.cont

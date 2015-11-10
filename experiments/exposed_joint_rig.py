@@ -7,7 +7,7 @@ class ExposedJointRig:
 
     def __init__(self, model_name, animations):
         self.actor = Actor(model_name, animations)
-        self.actor.update(force=True)
+        # self.actor.update(force=True)
 
         exposed_joint_gen = map_joints(self.actor, self.actor.getPartBundle('modelRoot'), \
             lambda actor, part: actor.exposeJoint(None, 'modelRoot', part.getName()))
