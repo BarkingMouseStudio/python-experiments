@@ -88,7 +88,7 @@ class FBXManager:
             scale = panda_node.getScale()
 
             self.setPropKeyframe(fbx_node.LclTranslation, key_index, pos)
-            self.setPropKeyframe(fbx_node.LclRotation, key_index, hpr)
+            self.setPropKeyframeRotation(fbx_node.LclRotation, key_index, hpr)
             self.setPropKeyframe(fbx_node.LclScaling, key_index, scale)
 
     def save(self, fbx_path):

@@ -34,17 +34,16 @@ class App(ShowBase):
         self.fbx_manager = FBXManager()
         self.fbx_manager.setupJoints(self.control_rig.control_joints)
 
-        num_frames = self.animated_rig.getNumFrames('animation')
+        self.num_frames = self.animated_rig.getNumFrames('animation')
+        self.setAnimationFrame(0)
 
-        for i in range(num_frames):
-            self.animated_rig.pose('animation', i)
-            self.control_rig.matchPose(self.animated_rig)
-            self.fbx_manager.setKeyframe(i, self.control_rig.control_joints)
-            print('progress: %f%%' % ((i / num_frames) * 100.0))
+        self.accept('escape', sys.exit)
+        self.taskMgr.add(self.update, 'update')
 
-        self.fbx_manager.save("animation-test.fbx")
-
-        sys.exit()
+    def setAnimationFrame(self, frame_count):
+        self.animated_rig.pose('animation', frame_count)
+        self.control_rig.matchPose(self.animated_rig)
+        self.fbx_manager.setKeyframe(frame_count, self.control_rig.control_joints)
 
     def createLens(self, aspect_ratio, fov=60.0, near=1.0, far=1000.0):
         lens = PerspectiveLens()
@@ -52,3 +51,16 @@ class App(ShowBase):
         lens.setAspectRatio(aspect_ratio)
         lens.setNearFar(near, far)
         return lens
+
+    def update(self, task):
+        frame_count = globalClock.getFrameCount()
+
+        if frame_count > self.num_frames:
+            self.fbx_manager.save("animation-test.fbx")
+            sys.exit()
+            return task.done
+
+        self.setAnimationFrame(frame_count)
+
+        print('progress: %f%%' % ((frame_count / self.num_frames) * 100.0))
+        return task.cont
