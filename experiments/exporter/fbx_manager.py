@@ -35,6 +35,8 @@ class FBXManager:
             fbx_node = fbx.FbxNode.Create(self.manager, name)
             fbx_node.SetNodeAttribute(fbx_node_attribute)
 
+            fbx_node.SetRotationOrder(fbx.FbxNode.eSourcePivot, fbx.eEulerXYZ)
+
             fbx_node.LclTranslation.Set(fbx.FbxDouble3(*pos))
             fbx_node.LclRotation.Set(fbx.FbxDouble3(*hpr))
             fbx_node.LclScaling.Set(fbx.FbxDouble3(*scale))
@@ -81,6 +83,7 @@ class FBXManager:
     def setKeyframe(self, key_index, control_joints):
         for panda_node, panda_parent in control_joints:
             name = panda_node.getName()
+
             fbx_node = self.fbx_nodes[name]
 
             pos = panda_node.getPos()

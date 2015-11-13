@@ -15,8 +15,6 @@ from ..exposed_joint_rig import ExposedJointRig
 from ..control_joint_rig import ControlJointRig
 from ..rigid_body_rig import RigidBodyRig
 
-from panda3d.bullet import get_bullet_version, BulletBoxShape
-
 class App(ShowBase):
 
     def __init__(self, args):
@@ -150,19 +148,11 @@ class App(ShowBase):
 
     def setAnimationFrame(self, frame):
         self.animated_rig.pose('walk', frame)
-
         self.physical_rig.matchPose(self.animated_rig)
-        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-
-        # self.control_rig.matchPhysicalPose(self.physical_rig)
-        # self.control_rig.matchPose(self.animated_rig)
 
     def babble(self):
         Y = self.physical_rig.babble()
-        # Y = self.control_rig.babble()
-
         self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-        # self.control_rig.matchPhysicalPose(self.physical_rig)
         return Y
 
     def generate(self, count):

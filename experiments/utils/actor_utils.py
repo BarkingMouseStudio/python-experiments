@@ -105,25 +105,3 @@ def apply_control_joints(control_joint_list, exposed_joint_list):
             exposed_joint.setPosHpr(exposed_joint_parent, control_pos, control_hpr)
         else:
             exposed_joint.setPosHpr(control_pos, control_hpr)
-
-# def measure_error(control_joint_list, exposed_joint_list):
-#     err = 0.0
-#     for control_joint_pair, exposed_joint_pair in zip(control_joint_list, exposed_joint_list):
-#         control_joint, control_joint_parent = control_joint_pair
-#         exposed_joint, exposed_joint_parent = exposed_joint_pair
-#
-#         if control_joint_parent is None or exposed_joint_parent is None:
-#             continue
-#
-#         # get target pose position and orientation in local space
-#         exposed_pos = exposed_joint.getPos(exposed_joint_parent)
-#         exposed_quat = exposed_joint.get_quat(exposed_joint_parent)
-#
-#         control_pos = control_joint.getPos(control_joint_parent)
-#         control_quat = control_joint.get_quat(control_joint_parent)
-#
-#         diff_pos = (exposed_pos - control_pos).length()
-#         diff_quat = exposed_quat.angle_deg(control_quat)
-#         err += diff_quat / 180.0
-#
-#     return err

@@ -1,3 +1,5 @@
+import numpy as np
+
 from direct.actor.Actor import Actor
 
 from .utils.actor_utils import walk_joints, map_joints, create_lines, filter_joints

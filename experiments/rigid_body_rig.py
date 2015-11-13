@@ -28,19 +28,36 @@ class RigidBodyRig:
         self.root.setPos(*pos)
 
     def babble(self):
-        F_all = [random.uniform(-100.0, 100.0) for collider in self.colliders]
-        r_all = [random_spherical() for collider in self.colliders]
+        F_all = np.array([random.uniform(-1.0, 1.0) for collider in self.colliders]) * 1000.0
 
-        # r_world_all = []
-        for collider, F, r in zip(self.colliders, F_all, r_all):
+        for collider, F in zip(self.colliders, F_all):
             r = Vec3(1, 0, 0)
             r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
-            # r_world_all.append(r_world)
+            T = r_world * F
 
-            collider.node().applyTorqueImpulse(r_world * F)
+            collider.node().applyTorqueImpulse(T)
 
-        # return np.concatenate([np.array(F_all), np.concatenate(r_world_all)])
         return np.array(F_all)
+
+    def apply_forces(self, F_all):
+        for collider, F in zip(self.colliders, F_all):
+            r = Vec3(1, 0, 0)
+            r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
+            T = r_world * F
+
+            collider.node().applyTorqueImpulse(T)
+
+    def compareTo(self, target):
+        positions = self.getJointPositions()
+        rotations = self.getJointRotations()
+
+        target_positions = target.getJointPositions()
+        target_rotations = target.getJointRotations()
+
+        err_pos = np.abs((positions - target_positions) / 200.0).sum()
+        err_hpr = np.abs((rotations - target_rotations) / 180.0).sum()
+
+        return err_pos + err_hpr
 
     def matchPose(self, pose_rig):
         for node, parent in pose_rig.exposed_joints:
