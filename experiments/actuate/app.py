@@ -15,6 +15,7 @@ from ..exposed_joint_rig import ExposedJointRig
 from ..control_joint_rig import ControlJointRig
 from ..rigid_body_rig import RigidBodyRig
 
+from ..utils.math_utils import get_angle_vec
 from ..utils.keras_utils import load_model
 
 class App(ShowBase):
@@ -66,11 +67,11 @@ class App(ShowBase):
         self.target_physical_rig.attachConstraints(self.world)
         self.target_physical_rig.matchPose(self.animated_rig)
 
-        self.control_rig = ControlJointRig('walking')
-        self.control_rig.reparentTo(self.render)
-        self.control_rig.setPos(0, 0, -98)
-        self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
-        self.control_rig.matchPhysicalPose(self.physical_rig)
+        # self.control_rig = ControlJointRig('walking')
+        # self.control_rig.reparentTo(self.render)
+        # self.control_rig.setPos(0, 0, -98)
+        # self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
+        # self.control_rig.matchPhysicalPose(self.physical_rig)
 
         self.disableCollisions()
 
@@ -82,10 +83,55 @@ class App(ShowBase):
         self.accept('escape', sys.exit)
         self.taskMgr.add(self.update, 'update')
 
+    def update(self, task):
+        frame = globalClock.getFrameCount()
+
+        joint_positions = self.physical_rig.getJointPositions()
+        joint_rotations = self.physical_rig.getJointRotations()
+
+        linear_velocities = self.physical_rig.getLinearVelocities()
+        angular_velocities = self.physical_rig.getAngularVelocities()
+
+        self.animated_rig.pose('walk', frame % self.frame_count)
+        self.target_physical_rig.matchPose(self.animated_rig)
+
+        next_joint_positions = self.target_physical_rig.getJointPositions()
+        next_joint_rotations = self.target_physical_rig.getJointRotations()
+
+        target_directions = next_joint_positions - joint_positions
+        target_rotations = get_angle_vec(next_joint_rotations - joint_rotations)
+
+        X = np.concatenate([
+            joint_positions,
+            joint_rotations,
+            linear_velocities,
+            angular_velocities,
+            target_directions,
+            target_rotations
+        ])
+
+        Y = self.model.predict(np.array([X]))
+        print(Y * 1000.0)
+        sys.exit()
+
+        self.physical_rig.apply_forces(Y[0])
+
+        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+
+        err = self.target_physical_rig.compareTo(self.physical_rig)
+        self.err_sum += math.pow(err, 2.0)
+
+        err_rmse = math.sqrt(self.err_sum / frame)
+        print err_rmse
+
+        return task.cont
+
     def disableCollisions(self):
         for i in range(32):
             self.world.setGroupCollisionFlag(i, i, False)
+
         self.world.setGroupCollisionFlag(0, 1, True)
+        self.world.setGroupCollisionFlag(0, 2, True)
 
     def setupDebug(self):
         node = BulletDebugNode('Debug')
@@ -104,8 +150,8 @@ class App(ShowBase):
         return lens
 
     def setupCamera(self, width, height):
-        self.cam.setPos(-200, -100, 0)
-        self.cam.lookAt(0, -100, 0)
+        self.cam.setPos(-200, 0, 0)
+        self.cam.lookAt(0, 0, 0)
         self.cam.node().setLens(self.createLens(width / height))
 
     def createLighting(self):
@@ -137,46 +183,3 @@ class App(ShowBase):
         self.world.attachRigidBody(rb)
 
         return np
-
-    def update(self, task):
-        frame = globalClock.getFrameCount()
-
-        joint_positions = self.physical_rig.getJointPositions()
-        joint_rotations = self.physical_rig.getJointRotations()
-
-        linear_velocities = self.physical_rig.getLinearVelocities()
-        angular_velocities = self.physical_rig.getAngularVelocities()
-
-        self.animated_rig.pose('walk', frame % self.frame_count)
-        self.target_physical_rig.matchPose(self.animated_rig)
-
-        next_joint_positions = self.target_physical_rig.getJointPositions()
-        next_joint_rotations = self.target_physical_rig.getJointRotations()
-
-        target_directions = next_joint_positions - joint_positions
-        target_rotations = next_joint_rotations - joint_rotations
-
-        X = np.concatenate([
-            joint_positions,
-            joint_rotations,
-            linear_velocities,
-            angular_velocities,
-            target_directions,
-            target_rotations
-        ])
-
-        Y = self.model.predict(np.array([X]))
-
-        self.physical_rig.apply_forces(Y[0] * 100.0)
-        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-
-        err = self.target_physical_rig.compareTo(self.physical_rig)
-        self.err_sum += math.pow(err, 2.0)
-
-        err_rmse = math.sqrt(self.err_sum / frame)
-        print err_rmse
-
-        if err_rmse > 40:
-            self.physical_rig.matchPose(self.animated_rig)
-
-        return task.cont

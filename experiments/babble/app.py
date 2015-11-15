@@ -5,11 +5,14 @@ import numpy as np
 import cPickle as pickle
 import random
 import sys
+import progressbar
 
 from direct.showbase.ShowBase import ShowBase
 
 from panda3d.core import VBase4, Vec3, PerspectiveLens, TransformState, ClockObject, DirectionalLight, AmbientLight, BitMask32
 from panda3d.bullet import BulletWorld, BulletPlaneShape, BulletRigidBodyNode, BulletDebugNode
+
+from ..utils.math_utils import get_angle_vec
 
 from ..exposed_joint_rig import ExposedJointRig
 from ..control_joint_rig import ControlJointRig
@@ -26,19 +29,20 @@ class App(ShowBase):
 
         self.save_path = args['<save_path>']
 
-        globalClock.set_mode(ClockObject.MNonRealTime)
-        globalClock.set_dt(0.02) # 20ms per frame
+        globalClock.setMode(ClockObject.MNonRealTime)
+        globalClock.setDt(0.02) # 20ms per frame
 
         self.setBackgroundColor(0.9, 0.9, 0.9)
         self.createLighting()
 
         if not headless:
-            self.setupCamera(width, height)
+            self.setupCamera(width, height, Vec3(0, -200, -100), Vec3(0, 0, -100))
 
         self.world = BulletWorld()
-        self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
+        # self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
+        self.world.setGravity(Vec3(0, 0, 0))
         self.setupDebug()
-        self.createPlane()
+        self.createPlane(Vec3(0, 0, -196))
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparentTo(self.render)
@@ -62,16 +66,26 @@ class App(ShowBase):
         # self.control_rig.matchPose(self.animated_rig)
 
         self.disableCollisions()
-
         self.setAnimationFrame(0)
+
+        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
 
         self.frame_count = self.animated_rig.getNumFrames('walk')
         self.babble_count = 10
 
         self.train_count = self.frame_count * self.babble_count * 300
-        self.test_count = self.frame_count * self.babble_count * 10
+        self.test_count = self.frame_count * self.babble_count * 30
 
-        print self.train_count, self.test_count
+        widgets = [
+            progressbar.SimpleProgress(), ' ',
+            progressbar.Percentage(), ' ',
+            progressbar.Bar(), ' ',
+            progressbar.FileTransferSpeed(format='%(scaled)5.1f/s'), ' ',
+            progressbar.ETA(), ' ',
+            progressbar.Timer(format='Elapsed: %(elapsed)s'),
+        ]
+        self.progressbar = progressbar.ProgressBar(widgets=widgets, max_value=self.train_count+self.test_count)
+        self.progressbar.start()
 
         self.X_train = []
         self.Y_train = []
@@ -103,35 +117,35 @@ class App(ShowBase):
         lens.setNearFar(near, far)
         return lens
 
-    def setupCamera(self, width, height):
-        self.cam.setPos(-200, -100, 0)
-        self.cam.lookAt(0, -100, 0)
+    def setupCamera(self, width, height, pos, look):
+        self.cam.setPos(pos)
+        self.cam.lookAt(look)
         self.cam.node().setLens(self.createLens(width / height))
 
     def createLighting(self):
         light = DirectionalLight('light')
-        light.set_color(VBase4(0.2, 0.2, 0.2, 1))
+        light.setColor(VBase4(0.2, 0.2, 0.2, 1))
 
-        np = self.render.attach_new_node(light)
+        np = self.render.attachNewNode(light)
         np.setPos(0, -200, 0)
         np.lookAt(0, 0, 0)
 
-        self.render.set_light(np)
+        self.render.setLight(np)
 
         light = AmbientLight('ambient')
-        light.set_color(VBase4(0.4, 0.4, 0.4, 1))
+        light.setColor(VBase4(0.4, 0.4, 0.4, 1))
 
         np = self.render.attachNewNode(light)
 
         self.render.setLight(np)
 
-    def createPlane(self):
+    def createPlane(self, pos):
         rb = BulletRigidBodyNode('Ground')
         rb.addShape(BulletPlaneShape(Vec3(0, 0, 1), 1))
         rb.setFriction(1.0)
 
         np = self.render.attachNewNode(rb)
-        np.setPos(Vec3(0, 0, -100))
+        np.setPos(pos)
         np.setCollideMask(BitMask32.bit(0))
 
         self.world.attachRigidBody(rb)
@@ -139,12 +153,13 @@ class App(ShowBase):
         return np
 
     def save(self):
-        print 'saving...', self.save_path
         data = ((self.X_train, self.Y_train), (self.X_test, self.Y_test))
 
         f = open(self.save_path, 'wb')
         pickle.dump(data, f)
         f.close()
+
+        self.progressbar.finish()
 
     def setAnimationFrame(self, frame):
         self.animated_rig.pose('walk', frame)
@@ -171,7 +186,8 @@ class App(ShowBase):
         next_joint_rotations = self.physical_rig.getJointRotations()
 
         target_directions = next_joint_positions - joint_positions
-        target_rotations = next_joint_rotations - joint_rotations
+        target_rotations = get_angle_vec(next_joint_rotations - joint_rotations)
+        # target_rotations = next_joint_rotations - joint_rotations
 
         X = np.concatenate([
             joint_positions,
@@ -185,6 +201,10 @@ class App(ShowBase):
         return X, Y
 
     def update(self, task):
+        # self.setAnimationFrame(globalClock.getFrameCount())
+        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        # return task.cont
+
         curr_train_count = len(self.X_train)
         curr_test_count = len(self.X_test)
 
@@ -205,9 +225,6 @@ class App(ShowBase):
             sys.exit()
             return task.done
 
-        total_completed = curr_train_count + curr_test_count
-        total_count = self.train_count + self.test_count
-
-        print 'progress: %f%%' % ((total_completed / total_count) * 100.0)
+        self.progressbar.update(curr_train_count + curr_test_count)
 
         return task.cont

@@ -115,4 +115,5 @@ class RigidBodyRig:
         return np.concatenate([collider.node().getLinearVelocity() for collider in self.colliders])
 
     def getAngularVelocities(self):
-        return np.concatenate([collider.node().getAngularVelocity() for collider in self.colliders])
+        return get_angle_vec(np.concatenate([collider.node().getAngularVelocity() for collider in self.colliders]))
+        # return np.concatenate([collider.node().getAngularVelocity() for collider in self.colliders])

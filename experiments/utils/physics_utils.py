@@ -104,8 +104,9 @@ def create_constraints(root, joint_pairs):
             constraint = BulletHingeConstraint(rb_parent, rb_child, offset_parent, offset_child, \
                 axis_parent, axis_child)
 
-            low, high = joint_config['limit']
-            constraint.setLimit(low, high)
+            if 'limit' in joint_config:
+                low, high = joint_config['limit']
+                constraint.setLimit(low, high)
         elif joint_config['type'] == 'cone':
             frame_parent = TransformState.makePosHpr(offset_parent, Vec3(90, 0, 0))
             frame_child = TransformState.makePosHpr(offset_child, Vec3(90, 0, 0))
