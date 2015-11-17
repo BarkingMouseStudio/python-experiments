@@ -9,14 +9,21 @@ joints_config = {
     # Hips RightUpLeg LVecBase3f(1, 4.68006, 1) LVecBase3f(1, 20.8829, 1)
 
     "Hips": {
+        "mass": 0,
         "joints": {
             "LeftUpLeg": {
-                "type": "spherical",
+                "type": "hinge",
+                "limit": (-200, -90),
+                "axis_parent": (1, 0, 0),
+                "axis_child": (1, 0, 0),
                 "offset_parent": (9.6338, -2.821, 1.66026),
                 "offset_child": (0, -20.8829, 0),
             },
             "RightUpLeg": {
-                "type": "spherical",
+                "type": "hinge",
+                "limit": (-200, -90),
+                "axis_parent": (1, 0, 0),
+                "axis_child": (1, 0, 0),
                 "offset_parent": (-9.6338, -2.821, 1.66026),
                 "offset_child": (0, -20.8829, 0),
             },
@@ -26,20 +33,24 @@ joints_config = {
     # Left Leg
 
     "LeftUpLeg": {
+        "mass": 10,
         "joints": {
             "LeftLeg": {
                 "type": "hinge",
+                "limit": (-90, 0),
                 "axis_parent": (1, 0, 0),
-                "axis_child": (-1, 0, 0),
+                "axis_child": (1, 0, 0),
             }
         }
     },
     "LeftLeg": {
+        "mass": 10,
         "joints": {
             "LeftFoot": {
                 "type": "hinge",
+                "limit": (25, 85),
                 "axis_parent": (1, 0, 0),
-                "axis_child": (-1, 0, 0),
+                "axis_child": (1, 0, 0),
             }
         }
     },
@@ -54,20 +65,24 @@ joints_config = {
     # Right Leg
 
     "RightUpLeg": {
+        "mass": 10,
         "joints": {
             "RightLeg": {
                 "type": "hinge",
+                "limit": (-90, 0),
                 "axis_parent": (1, 0, 0),
-                "axis_child": (-1, 0, 0),
+                "axis_child": (1, 0, 0),
             }
         }
     },
     "RightLeg": {
+        "mass": 10,
         "joints": {
             "RightFoot": {
                 "type": "hinge",
+                "limit": (25, 85),
                 "axis_parent": (1, 0, 0),
-                "axis_child": (-1, 0, 0),
+                "axis_child": (1, 0, 0),
             }
         }
     },

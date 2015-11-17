@@ -2,7 +2,7 @@ import math
 import random
 import numpy as np
 
-from panda3d.core import NodePath, Vec3, RigidBodyCombiner
+from panda3d.core import NodePath, Vec3, RigidBodyCombiner, lookAt, Quat
 from pandac.PandaModules import CharacterJoint
 
 from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode, BulletSphericalConstraint, BulletHingeConstraint, BulletConeTwistConstraint
@@ -12,6 +12,8 @@ from .utils.physics_utils import create_constraints, create_colliders, get_joint
 from .utils.actor_utils import match_pose, walk_joints
 from .utils.math_utils import get_angle_vec, random_spherical
 from .config import joints_config, excluded_joints
+
+F_MAX = 1000.0
 
 class RigidBodyRig:
 
@@ -24,13 +26,22 @@ class RigidBodyRig:
     def createConstraints(self):
         self.constraints = list(create_constraints(self.root, get_joint_pairs(self.root, joints_config)))
 
+    def clearMasses(self):
+        [collider.node().setMass(0) for collider in self.colliders]
+
     def setPos(self, *pos):
         self.root.setPos(*pos)
 
     def babble(self):
-        F_all = np.array([random.uniform(-1.0, 1.0) for collider in self.colliders]) * 1000.0
+        F_all = []
 
-        for collider, F in zip(self.colliders, F_all):
+        for collider in self.colliders:
+            if collider.getName() == "Hips":
+                continue
+
+            F = random.uniform(-1.0, 1.0) * collider.node().getMass() * F_MAX
+            F_all.append(F)
+
             r = Vec3(1, 0, 0)
             r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
             T = r_world * F
@@ -40,12 +51,19 @@ class RigidBodyRig:
         return np.array(F_all)
 
     def apply_forces(self, F_all):
-        for collider, F in zip(self.colliders, F_all):
+        i = 0
+        for collider in self.colliders:
+            if collider.getName() == "Hips":
+                continue
+
+            F = F_all[i] * collider.node().getMass() * F_MAX
+
             r = Vec3(1, 0, 0)
             r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
             T = r_world * F
 
             collider.node().applyTorqueImpulse(T)
+            i += 1
 
     def compareTo(self, target):
         positions = self.getJointPositions()
@@ -82,10 +100,16 @@ class RigidBodyRig:
                 joint = joints.keys()[0]
                 child_node, child_parent = next((child_node, child_parent) for child_node, child_parent in pose_rig.exposed_joints if child_node.getName() == joint)
                 box_np.setPos(child_parent, child_node.getPos(child_parent) / 2.0)
-                box_np.lookAt(child_parent, child_node.getPos(child_parent))
 
-            box_np.node().setLinearVelocity(Vec3.zero())
-            box_np.node().setAngularVelocity(Vec3.zero())
+                quat = Quat()
+                lookAt(quat, child_node.getPos(child_parent), Vec3.up())
+                box_np.setQuat(child_parent, quat)
+
+            box_np.node().clearForces()
+
+    def clearForces(self):
+        for collider in self.colliders:
+            collider.node().clearForces()
 
     def setPos(self, *pos):
         self.root.setPos(*pos)
@@ -116,4 +140,3 @@ class RigidBodyRig:
 
     def getAngularVelocities(self):
         return get_angle_vec(np.concatenate([collider.node().getAngularVelocity() for collider in self.colliders]))
-        # return np.concatenate([collider.node().getAngularVelocity() for collider in self.colliders])

@@ -32,13 +32,15 @@ def create_colliders(root, pose_rig, joints_config):
         if len(joints) == 0:
             continue
 
-        mass = 1
+        mass = joint_config['mass'] if 'mass' in joint_config else 1
 
         box_rb = BulletRigidBodyNode(node.getName())
         box_rb.setMass(mass)
         box_rb.setLinearDamping(0.2)
         box_rb.setAngularDamping(0.9)
-        box_rb.setFriction(0.2)
+        box_rb.setFriction(1.0)
+        box_rb.setAnisotropicFriction(1.0)
+        box_rb.setRestitution(0.0)
 
         for joint in joints:
             child_node, child_parent = next((child_node, child_parent) for child_node, child_parent in pose_rig.exposed_joints if child_node.getName() == joint)
@@ -106,7 +108,10 @@ def create_constraints(root, joint_pairs):
 
             if 'limit' in joint_config:
                 low, high = joint_config['limit']
-                constraint.setLimit(low, high)
+                softness = 0.0
+                bias = 0.0
+                relaxation = 1.0
+                constraint.setLimit(low, high, softness, bias, relaxation)
         elif joint_config['type'] == 'cone':
             frame_parent = TransformState.makePosHpr(offset_parent, Vec3(90, 0, 0))
             frame_child = TransformState.makePosHpr(offset_child, Vec3(90, 0, 0))

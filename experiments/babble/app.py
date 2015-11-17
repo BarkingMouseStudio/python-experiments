@@ -12,11 +12,11 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import VBase4, Vec3, PerspectiveLens, TransformState, ClockObject, DirectionalLight, AmbientLight, BitMask32
 from panda3d.bullet import BulletWorld, BulletPlaneShape, BulletRigidBodyNode, BulletDebugNode
 
-from ..utils.math_utils import get_angle_vec
-
 from ..exposed_joint_rig import ExposedJointRig
 from ..control_joint_rig import ControlJointRig
 from ..rigid_body_rig import RigidBodyRig
+
+from ..utils.math_utils import get_angle_vec
 
 class App(ShowBase):
 
@@ -36,19 +36,18 @@ class App(ShowBase):
         self.createLighting()
 
         if not headless:
-            self.setupCamera(width, height, Vec3(0, -200, -100), Vec3(0, 0, -100))
+            self.setupCamera(width, height, Vec3(200, -100, -100), Vec3(0, 0, -100))
 
         self.world = BulletWorld()
-        # self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
-        self.world.setGravity(Vec3(0, 0, 0))
+        self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
+        # self.world.setGravity(Vec3(0, 0, 0))
         self.setupDebug()
-        self.createPlane(Vec3(0, 0, -196))
+        self.createPlane(Vec3(0, 0, -194))
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparentTo(self.render)
         self.animated_rig.setPos(0, 0, -98)
         self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
-        self.animated_rig.pose('walk', 0)
 
         self.physical_rig = RigidBodyRig()
         self.physical_rig.reparentTo(self.render)
@@ -59,22 +58,14 @@ class App(ShowBase):
         self.physical_rig.attachRigidBodies(self.world)
         self.physical_rig.attachConstraints(self.world)
 
-        # self.control_rig = ControlJointRig('walking')
-        # self.control_rig.reparentTo(self.render)
-        # self.control_rig.setPos(0, 0, -98)
-        # self.control_rig.createLines(VBase4(1.0, 0.75, 0.5, 1.0))
-        # self.control_rig.matchPose(self.animated_rig)
-
         self.disableCollisions()
         self.setAnimationFrame(0)
 
-        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-
         self.frame_count = self.animated_rig.getNumFrames('walk')
-        self.babble_count = 10
+        self.babble_count = 100
 
-        self.train_count = self.frame_count * self.babble_count * 300
-        self.test_count = self.frame_count * self.babble_count * 30
+        self.train_count = self.frame_count * self.babble_count * 100
+        self.test_count = self.frame_count * self.babble_count * 10
 
         widgets = [
             progressbar.SimpleProgress(), ' ',
@@ -143,6 +134,8 @@ class App(ShowBase):
         rb = BulletRigidBodyNode('Ground')
         rb.addShape(BulletPlaneShape(Vec3(0, 0, 1), 1))
         rb.setFriction(1.0)
+        rb.setAnisotropicFriction(1.0)
+        rb.setRestitution(0.0)
 
         np = self.render.attachNewNode(rb)
         np.setPos(pos)
@@ -165,11 +158,6 @@ class App(ShowBase):
         self.animated_rig.pose('walk', frame)
         self.physical_rig.matchPose(self.animated_rig)
 
-    def babble(self):
-        Y = self.physical_rig.babble()
-        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-        return Y
-
     def generate(self, count):
         if count % self.babble_count == 0:
             self.setAnimationFrame(int(count / self.babble_count))
@@ -180,14 +168,14 @@ class App(ShowBase):
         linear_velocities = self.physical_rig.getLinearVelocities()
         angular_velocities = self.physical_rig.getAngularVelocities()
 
-        Y = self.babble()
+        Y = self.physical_rig.babble()
+        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
 
         next_joint_positions = self.physical_rig.getJointPositions()
         next_joint_rotations = self.physical_rig.getJointRotations()
 
         target_directions = next_joint_positions - joint_positions
         target_rotations = get_angle_vec(next_joint_rotations - joint_rotations)
-        # target_rotations = next_joint_rotations - joint_rotations
 
         X = np.concatenate([
             joint_positions,
@@ -201,7 +189,9 @@ class App(ShowBase):
         return X, Y
 
     def update(self, task):
-        # self.setAnimationFrame(globalClock.getFrameCount())
+        # if globalClock.getFrameCount() % 100 == 0:
+        #     self.setAnimationFrame(globalClock.getFrameCount() / 100)
+        # self.physical_rig.babble()
         # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
         # return task.cont
 
