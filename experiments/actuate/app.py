@@ -37,15 +37,15 @@ class App(ShowBase):
             self.setupCamera(width, height, Vec3(200, -100, -100), Vec3(0, 0, -100))
 
         self.world = BulletWorld()
-        # self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
-        self.world.setGravity(Vec3(0, 0, 0))
+        self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
+        # self.world.setGravity(Vec3(0, 0, 0))
         self.setupDebug()
         self.createPlane(Vec3(0, 0, -200))
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparentTo(self.render)
         self.animated_rig.setPos(0, 0, -98)
-        self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
+        # self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
 
         self.physical_rig = RigidBodyRig()
         self.physical_rig.reparentTo(self.render)
@@ -152,7 +152,7 @@ class App(ShowBase):
         linear_velocities = self.physical_rig.getLinearVelocities()
         angular_velocities = self.physical_rig.getAngularVelocities()
 
-        pause_count = 100
+        pause_count = 1
         if frame_count % pause_count == 0:
             self.animated_rig.pose('walk', int(frame_count / pause_count) % self.num_frames)
             self.target_physical_rig.matchPose(self.animated_rig)
@@ -163,12 +163,9 @@ class App(ShowBase):
         target_directions = next_joint_positions - joint_positions
         target_rotations = get_angle_vec(next_joint_rotations - joint_rotations)
 
-        joint_positions /= np.fabs(joint_positions).max()
-        joint_rotations /= np.fabs(joint_rotations).max()
-        linear_velocities /= np.fabs(linear_velocities).max()
-        angular_velocities /= np.fabs(angular_velocities).max()
-        target_directions /= np.fabs(target_directions).max()
-        target_rotations /= np.fabs(target_rotations).max()
+        X_max = [89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0]
+
+        Y_max = 10000.0
 
         X = np.concatenate([
             joint_positions,
@@ -177,9 +174,9 @@ class App(ShowBase):
             angular_velocities,
             target_directions,
             target_rotations
-        ])
+        ]) / X_max
 
-        Y = self.model.predict(np.array([X]))
+        Y = self.model.predict(np.array([X])) * Y_max
 
         self.physical_rig.apply_forces(Y[0])
 

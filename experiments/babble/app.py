@@ -62,10 +62,10 @@ class App(ShowBase):
         self.setAnimationFrame(0)
 
         self.frame_count = self.animated_rig.getNumFrames('walk')
-        self.babble_count = 100
+        self.babble_count = 10
 
-        self.train_count = self.frame_count * self.babble_count * 100
-        self.test_count = self.frame_count * self.babble_count * 10
+        self.train_count = self.frame_count * self.babble_count * 1000
+        self.test_count = self.frame_count * self.babble_count * 100
 
         widgets = [
             progressbar.SimpleProgress(), ' ',

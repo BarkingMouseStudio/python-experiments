@@ -56,7 +56,7 @@ class RigidBodyRig:
             if collider.getName() == "Hips":
                 continue
 
-            F = F_all[i] * collider.node().getMass() * F_MAX
+            F = F_all[i]
 
             r = Vec3(1, 0, 0)
             r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
