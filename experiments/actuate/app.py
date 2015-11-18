@@ -27,29 +27,29 @@ class App(ShowBase):
         width = args['--width']
         height = args['--height']
 
-        globalClock.set_mode(ClockObject.MNonRealTime)
-        globalClock.set_dt(0.02) # 20ms per frame
+        globalClock.setMode(ClockObject.MNonRealTime)
+        globalClock.setDt(0.02) # 20ms per frame
 
         self.setBackgroundColor(0.9, 0.9, 0.9)
         self.createLighting()
 
         if not headless:
-            self.setupCamera(width, height, Vec3(200, -100, -100), Vec3(0, 0, -100))
+            self.setupCamera(width, height, Vec3(200, -200, 0), Vec3(0, 0, 0))
 
         self.world = BulletWorld()
         self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
         # self.world.setGravity(Vec3(0, 0, 0))
         self.setupDebug()
-        self.createPlane(Vec3(0, 0, -200))
+        self.createPlane(Vec3(0, 0, -100))
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparentTo(self.render)
-        self.animated_rig.setPos(0, 0, -98)
+        self.animated_rig.setPos(0, 0, 0)
         # self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
 
         self.physical_rig = RigidBodyRig()
         self.physical_rig.reparentTo(self.render)
-        self.physical_rig.setPos(0, 0, -98)
+        self.physical_rig.setPos(0, 0, 0)
         self.physical_rig.createColliders(self.animated_rig)
         self.physical_rig.createConstraints()
         self.physical_rig.setCollideMask(BitMask32.bit(1))
@@ -58,7 +58,7 @@ class App(ShowBase):
 
         self.target_physical_rig = RigidBodyRig()
         self.target_physical_rig.reparentTo(self.render)
-        self.target_physical_rig.setPos(0, 0, -98)
+        self.target_physical_rig.setPos(0, 0, 0)
         self.target_physical_rig.createColliders(self.animated_rig)
         self.target_physical_rig.createConstraints()
         self.target_physical_rig.setCollideMask(BitMask32.bit(2))
@@ -66,8 +66,9 @@ class App(ShowBase):
         self.target_physical_rig.attachConstraints(self.world)
         self.target_physical_rig.clearMasses()
 
-        self.animated_rig.pose('walk', 0)
+        self.disableCollisions()
 
+        # self.animated_rig.pose('walk', 0)
         self.physical_rig.matchPose(self.animated_rig)
         self.target_physical_rig.matchPose(self.animated_rig)
 
@@ -144,6 +145,9 @@ class App(ShowBase):
         return np
 
     def update(self, task):
+        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        # return task.cont
+
         frame_count = globalClock.getFrameCount()
 
         joint_positions = self.physical_rig.getJointPositions()
@@ -152,10 +156,10 @@ class App(ShowBase):
         linear_velocities = self.physical_rig.getLinearVelocities()
         angular_velocities = self.physical_rig.getAngularVelocities()
 
-        pause_count = 1
-        if frame_count % pause_count == 0:
-            self.animated_rig.pose('walk', int(frame_count / pause_count) % self.num_frames)
-            self.target_physical_rig.matchPose(self.animated_rig)
+        # pause_count = 1
+        # if frame_count % pause_count == 0:
+        #     self.animated_rig.pose('walk', int(frame_count / pause_count) % self.num_frames)
+        #     self.target_physical_rig.matchPose(self.animated_rig)
 
         next_joint_positions = self.target_physical_rig.getJointPositions()
         next_joint_rotations = self.target_physical_rig.getJointRotations()
@@ -163,7 +167,7 @@ class App(ShowBase):
         target_directions = next_joint_positions - joint_positions
         target_rotations = get_angle_vec(next_joint_rotations - joint_rotations)
 
-        X_max = [89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 89.32040405273438, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 626.9610595703125, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 55.92095184326172, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 12.25001335144043, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0]
+        X_max = [210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 210.5078125, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 552.7041625976562, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 52.49853515625, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 10.845664978027344, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312, 179.99978637695312]
 
         Y_max = 10000.0
 

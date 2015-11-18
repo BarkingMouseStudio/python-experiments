@@ -9,7 +9,7 @@ joints_config = {
     # Hips RightUpLeg LVecBase3f(1, 4.68006, 1) LVecBase3f(1, 20.8829, 1)
 
     "Hips": {
-        "mass": 0,
+        "mass": 100,
         "joints": {
             "LeftUpLeg": {
                 "type": "hinge",

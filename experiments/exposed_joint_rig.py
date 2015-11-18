@@ -21,11 +21,11 @@ class ExposedJointRig:
 
     def mapJoints(self, part, prev=None):
         if isinstance(part, CharacterJoint):
-            # curr = self.actor.exposeJoint(None, 'modelRoot', part.getName())
-            if prev is not None:
-                curr = self.actor.exposeJoint(None, 'modelRoot', part.getName())
-            else:
-                curr = self.actor.controlJoint(None, 'modelRoot', part.getName())
+            curr = self.actor.exposeJoint(None, 'modelRoot', part.getName())
+            # if prev is not None:
+            #     curr = self.actor.exposeJoint(None, 'modelRoot', part.getName())
+            # else:
+            #     curr = self.actor.controlJoint(None, 'modelRoot', part.getName())
 
             yield curr, prev
             prev = curr
