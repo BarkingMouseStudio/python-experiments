@@ -2,7 +2,7 @@ import math
 import random
 import numpy as np
 
-from panda3d.core import NodePath, Vec3, RigidBodyCombiner, lookAt, Quat
+from panda3d.core import NodePath, Vec3, RigidBodyCombiner, lookAt, Quat, TransformState
 from pandac.PandaModules import CharacterJoint
 
 from panda3d.bullet import BulletBoxShape, BulletRigidBodyNode, BulletSphericalConstraint, BulletHingeConstraint, BulletConeTwistConstraint
@@ -13,7 +13,7 @@ from .utils.actor_utils import match_pose, walk_joints
 from .utils.math_utils import get_angle_vec, random_spherical
 from .config import joints_config, excluded_joints
 
-F_MAX = 1000.0
+F_MAX = 100.0
 
 class RigidBodyRig:
 
@@ -29,6 +29,20 @@ class RigidBodyRig:
     def clearMasses(self):
         [collider.node().setMass(0) for collider in self.colliders]
 
+    def attachCubes(self, loader):
+        for collider in self.colliders:
+            for i in range(collider.node().getNumShapes()):
+                shape = collider.node().getShape(i)
+                mat = collider.node().getShapeMat(i)
+                scale = shape.getHalfExtentsWithMargin()
+
+                transform = TransformState.makeMat(mat)
+
+                cube = loader.loadModel("cube.egg")
+                cube.setTransform(transform)
+                cube.setScale(scale)
+                cube.reparentTo(collider)
+
     def setPos(self, *pos):
         self.root.setPos(*pos)
 
@@ -36,13 +50,14 @@ class RigidBodyRig:
         F_all = []
 
         for collider in self.colliders:
-            if collider.getName() == "Hips":
+            collider_name = collider.getName()
+            if collider_name == "Hips":
                 continue
 
-            F = random.uniform(-1.0, 1.0) * collider.node().getMass() * F_MAX
+            F = random.uniform(-1.0, 1.0) * joints_config[collider_name].get("F_max", 4000.0)
             F_all.append(F)
 
-            r = Vec3(1, 0, 0)
+            r = Vec3(*joints_config[collider_name].get("axis", (1, 0, 0)))
             r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
             T = r_world * F
 

@@ -109,8 +109,8 @@ def create_constraints(root, joint_pairs):
             if 'limit' in joint_config:
                 low, high = joint_config['limit']
                 softness = 0.0
-                bias = 0.0
-                relaxation = 1.0
+                bias = 4.0
+                relaxation = 0.1
                 constraint.setLimit(low, high, softness, bias, relaxation)
         elif joint_config['type'] == 'cone':
             frame_parent = TransformState.makePosHpr(offset_parent, Vec3(90, 0, 0))

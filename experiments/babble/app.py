@@ -36,22 +36,22 @@ class App(ShowBase):
         self.createLighting()
 
         if not headless:
-            self.setupCamera(width, height, Vec3(200, -200, 0), Vec3(0, 0, 0))
+            self.setupCamera(width, height, Vec3(0, -200, 0), Vec3(0, 0, 0))
 
         self.world = BulletWorld()
-        self.world.setGravity(Vec3(0, 0, -9.81 * 10.0))
+        self.world.setGravity(Vec3(0, 0, -9.81 * 100.0))
         # self.world.setGravity(Vec3(0, 0, 0))
         self.setupDebug()
         self.createPlane(Vec3(0, 0, -100))
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparentTo(self.render)
-        self.animated_rig.setPos(0, 0, -100)
+        self.animated_rig.setPos(0, 0, 0)
         # self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
 
         self.physical_rig = RigidBodyRig()
         self.physical_rig.reparentTo(self.render)
-        self.physical_rig.setPos(0, 0, -100)
+        self.physical_rig.setPos(0, 0, 0)
         self.physical_rig.createColliders(self.animated_rig)
         self.physical_rig.createConstraints()
         self.physical_rig.setCollideMask(BitMask32.bit(1))
@@ -59,7 +59,8 @@ class App(ShowBase):
         self.physical_rig.attachConstraints(self.world)
 
         self.disableCollisions()
-        self.setAnimationFrame(0)
+        # self.setAnimationFrame(0)
+        self.physical_rig.matchPose(self.animated_rig)
 
         self.frame_count = self.animated_rig.getNumFrames('walk')
         self.babble_count = 10
@@ -160,7 +161,8 @@ class App(ShowBase):
 
     def generate(self, count):
         if count % self.babble_count == 0:
-            self.setAnimationFrame(int(count / self.babble_count))
+            # self.setAnimationFrame(int(count / self.babble_count))
+            self.physical_rig.matchPose(self.animated_rig)
 
         joint_positions = self.physical_rig.getJointPositions()
         joint_rotations = self.physical_rig.getJointRotations()
@@ -192,8 +194,8 @@ class App(ShowBase):
         # if globalClock.getFrameCount() % 100 == 0:
         #     self.setAnimationFrame(globalClock.getFrameCount() / 100)
         # self.physical_rig.babble()
-        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-        return task.cont
+        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        # return task.cont
 
         curr_train_count = len(self.X_train)
         curr_test_count = len(self.X_test)

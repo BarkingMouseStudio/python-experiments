@@ -1,12 +1,11 @@
 """Generate training data for target matching.
 
 Usage:
-  main.py [--width=<width>] [--height=<height>] [--headless]
+  main.py [--width=<width>] [--height=<height>]
   main.py (-h | --help)
 
 Options:
   -h --help                 Show this text.
-  --headless                Run in headless mode.
   --width=<width>           Save path for weights [default: 640].
   --height=<height>         Load path for weights [default: 640].
 """
@@ -24,7 +23,6 @@ def main():
 
     schema = Schema({
         '--help': bool,
-        '--headless': bool,
         '--width': Use(int),
         '--height': Use(int),
     })
@@ -43,9 +41,6 @@ def main():
     loadPrcFileData('', 'bullet-filter-algorithm groups-mask')
     # loadPrcFileData('', 'framebuffer-multisample 1')
     # loadPrcFileData('', 'multisamples 1')
-
-    if args['--headless']:
-        loadPrcFileData('', 'window-type none')
 
     app = App(args)
     app.run()
