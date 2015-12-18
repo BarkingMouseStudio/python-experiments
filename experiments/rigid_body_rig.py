@@ -13,8 +13,6 @@ from .utils.actor_utils import match_pose, walk_joints
 from .utils.math_utils import get_angle_vec, random_spherical
 from .config import joints_config, excluded_joints
 
-F_MAX = 100.0
-
 class RigidBodyRig:
 
     def __init__(self):
@@ -23,8 +21,8 @@ class RigidBodyRig:
     def createColliders(self, pose_rig):
         self.colliders = list(create_colliders(self.root, pose_rig, joints_config))
 
-    def createConstraints(self):
-        self.constraints = list(create_constraints(self.root, get_joint_pairs(self.root, joints_config)))
+    def createConstraints(self, offset_scale):
+        self.constraints = list(create_constraints(self.root, get_joint_pairs(self.root, joints_config), offset_scale))
 
     def clearMasses(self):
         [collider.node().setMass(0) for collider in self.colliders]
@@ -43,6 +41,9 @@ class RigidBodyRig:
                 cube.setScale(scale)
                 cube.reparentTo(collider)
 
+    def setScale(self, *scale):
+        self.root.setScale(*scale)
+
     def setPos(self, *pos):
         self.root.setPos(*pos)
 
@@ -58,7 +59,7 @@ class RigidBodyRig:
             F_all.append(F)
 
             r = Vec3(*joints_config[collider_name].get("axis", (1, 0, 0)))
-            r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
+            r_world = collider.getQuat(self.root).xform(r)
             T = r_world * F
 
             collider.node().applyTorqueImpulse(T)
@@ -74,7 +75,7 @@ class RigidBodyRig:
             F = F_all[i]
 
             r = Vec3(1, 0, 0)
-            r_world = collider.getQuat(self.root).xform(r) # TODO: is root necessary?
+            r_world = collider.getQuat(self.root).xform(r)
             T = r_world * F
 
             collider.node().applyTorqueImpulse(T)

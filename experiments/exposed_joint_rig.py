@@ -43,6 +43,9 @@ class ExposedJointRig:
     def setPlayRate(self, play_rate, animation_name):
         self.actor.setPlayRate(play_rate, animation_name)
 
+    def setScale(self, x, y, z):
+        self.actor.setScale(x, y, z)
+
     def setPos(self, x, y, z):
         self.actor.setPos(x, y, z)
 

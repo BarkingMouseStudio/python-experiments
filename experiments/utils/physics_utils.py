@@ -35,12 +35,12 @@ def create_colliders(root, pose_rig, joints_config):
         mass = joint_config['mass'] if 'mass' in joint_config else 1
 
         box_rb = BulletRigidBodyNode(node.getName())
-        box_rb.setMass(mass)
-        box_rb.setLinearDamping(0.2)
-        box_rb.setAngularDamping(0.9)
-        box_rb.setFriction(1.0)
-        box_rb.setAnisotropicFriction(1.0)
-        box_rb.setRestitution(0.0)
+        box_rb.setMass(1.0)
+        # box_rb.setLinearDamping(0.2)
+        # box_rb.setAngularDamping(0.9)
+        # box_rb.setFriction(1.0)
+        # box_rb.setAnisotropicFriction(1.0)
+        # box_rb.setRestitution(0.0)
 
         for joint in joints:
             child_node, child_parent = next((child_node, child_parent) for child_node, child_parent in pose_rig.exposed_joints if child_node.getName() == joint)
@@ -57,7 +57,6 @@ def create_colliders(root, pose_rig, joints_config):
                 transform = TransformState.makePosHpr(child_node.getPos(child_parent) / 2.0, quat.getHpr())
             else:
                 transform = TransformState.makeHpr(quat.getHpr())
-                # transform = TransformState.makeIdentity()
 
             box_rb.addShape(shape, transform)
 
@@ -73,7 +72,7 @@ def create_colliders(root, pose_rig, joints_config):
 
         yield box_np
 
-def create_constraints(root, joint_pairs):
+def create_constraints(root, joint_pairs, offset_scale):
     for joint_config, parent, child in joint_pairs:
         rb_parent = parent.node()
         rb_child = child.node()
@@ -82,7 +81,7 @@ def create_constraints(root, joint_pairs):
         extents_child = rb_child.get_shape(0).getHalfExtentsWithMargin()
 
         if 'offset_parent' in joint_config:
-            offset_parent = joint_config['offset_parent']
+            offset_parent = Point3(joint_config['offset_parent'])
         else:
             offset_parent = (0, 1, 0)
             offset_parent_x, offset_parent_y, offset_parent_z = offset_parent
@@ -91,13 +90,16 @@ def create_constraints(root, joint_pairs):
                                    offset_parent_z * extents_parent.getZ())
 
         if 'offset_child' in joint_config:
-            offset_child = joint_config['offset_child']
+            offset_child = Point3(*joint_config['offset_child'])
         else:
             offset_child = (0, -1, 0)
             offset_child_x, offset_child_y, offset_child_z = offset_child
             offset_child = Point3(offset_child_x * extents_child.getX(), \
                                   offset_child_y * extents_child.getY(), \
                                   offset_child_z * extents_child.getZ())
+
+        offset_parent = offset_parent * offset_scale
+        offset_child = offset_child * offset_scale
 
         if joint_config['type'] == 'hinge':
             axis_parent = Vec3(*joint_config['axis_parent'])
@@ -108,9 +110,9 @@ def create_constraints(root, joint_pairs):
 
             if 'limit' in joint_config:
                 low, high = joint_config['limit']
-                softness = 0.0
-                bias = 4.0
-                relaxation = 0.1
+                softness = 1.0
+                bias = 0.3
+                relaxation = 1.0
                 constraint.setLimit(low, high, softness, bias, relaxation)
         elif joint_config['type'] == 'cone':
             frame_parent = TransformState.makePosHpr(offset_parent, Vec3(90, 0, 0))
@@ -123,6 +125,6 @@ def create_constraints(root, joint_pairs):
         elif joint_config['type'] == 'spherical':
             constraint = BulletSphericalConstraint(rb_parent, rb_child, offset_parent, offset_child)
 
-        constraint.setDebugDrawSize(3.0)
+        # constraint.setDebugDrawSize(1.0)
 
         yield constraint

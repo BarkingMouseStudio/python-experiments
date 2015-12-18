@@ -9,9 +9,7 @@ joints_config = {
     # Hips RightUpLeg LVecBase3f(1, 4.68006, 1) LVecBase3f(1, 20.8829, 1)
 
     "Hips": {
-        "mass": 100,
-        "F_max": 0,
-        "axis": (1, 0, 0),
+        "mass": 6,
         "joints": {
             "Spine": {
                 "type": "hinge",
@@ -37,12 +35,20 @@ joints_config = {
                 "offset_child": (0, -20.8829, 0),
             },
         },
+        "muscles": {
+            "Spine": [
+                {
+                    "F_max": 100,
+                    "attachment_a": (),
+                    "attachment_b": (),
+                    "joint_center": (),
+                }
+            ]
+        },
     },
 
     "Spine": {
-        "mass": 10,
-        "F_max": 4000.0,
-        "axis": (1, 0, 0),
+        "mass": 1,
         "joints": {
             "Spine1": {
                 "type": "hinge",
@@ -56,9 +62,7 @@ joints_config = {
     # Spine1 Spine2 LVecBase3f(1, 6.85034, 1) LVecBase3f(1, 6.2423, 1)
 
     "Spine1": {
-        "mass": 10,
-        "F_max": 400.0,
-        "axis": (1, 0, 0),
+        "mass": 1,
         "joints": {
             "Spine2": {
                 "type": "hinge",
@@ -82,9 +86,7 @@ joints_config = {
     # Spine2 LeftShoulder LVecBase3f(1, 6.2423, 1) LVecBase3f(1, 6.24931, 1)
 
     "Spine2": {
-        "mass": 10,
-        "F_max": 200.0,
-        "axis": (1, 0, 0),
+        "mass": 1,
         "joints": {
             "Neck": {
                 "type": "hinge",
@@ -111,9 +113,7 @@ joints_config = {
     },
 
     "Neck": {
-        "mass": 5,
-        "F_max": 100.0,
-        "axis": (1, 0, 0),
+        "mass": 1,
         "joints": {
             "Neck1": {
                 "type": "hinge",
@@ -125,8 +125,6 @@ joints_config = {
 
     "Neck1": {
         "mass": 1,
-        "F_max": 0.0,
-        "axis": (1, 0, 0),
         "joints": {
             "Head": {
                 "type": None
@@ -137,9 +135,7 @@ joints_config = {
     # Left Leg
 
     "LeftUpLeg": {
-        "mass": 30,
-        "F_max": 200000.0,
-        "axis": (1, 0, 0),
+        "mass": 4,
         "joints": {
             "LeftLeg": {
                 "type": "hinge",
@@ -150,9 +146,7 @@ joints_config = {
         }
     },
     "LeftLeg": {
-        "mass": 20,
-        "F_max": 40000.0,
-        "axis": (1, 0, 0),
+        "mass": 4,
         "joints": {
             "LeftFoot": {
                 "type": "hinge",
@@ -163,9 +157,7 @@ joints_config = {
         }
     },
     "LeftFoot": {
-        "mass": 10,
-        "F_max": 4000.0,
-        "axis": (1, 0, 0),
+        "mass": 1,
         "joints": {
             "LeftToeBase": {
                 "type": None
@@ -176,9 +168,7 @@ joints_config = {
     # Right Leg
 
     "RightUpLeg": {
-        "mass": 30,
-        "F_max": 200000.0,
-        "axis": (1, 0, 0),
+        "mass": 4,
         "joints": {
             "RightLeg": {
                 "type": "hinge",
@@ -189,9 +179,7 @@ joints_config = {
         }
     },
     "RightLeg": {
-        "mass": 20,
-        "F_max": 40000.0,
-        "axis": (1, 0, 0),
+        "mass": 4,
         "joints": {
             "RightFoot": {
                 "type": "hinge",
@@ -202,9 +190,7 @@ joints_config = {
         }
     },
     "RightFoot": {
-        "mass": 10,
-        "F_max": 4000.0,
-        "axis": (1, 0, 0),
+        "mass": 1,
         "joints": {
             "RightToeBase": {
                 "type": None
@@ -215,8 +201,7 @@ joints_config = {
     # Left Arm
 
     "LeftShoulder": {
-        "mass": 20,
-        "F_max": 40000.0,
+        "mass": 1,
         "axis": (0, 0, 1),
         "joints": {
             "LeftArm": {
@@ -227,8 +212,7 @@ joints_config = {
         }
     },
     "LeftArm": {
-        "mass": 10,
-        "F_max": 4000.0,
+        "mass": 2,
         "axis": (0, 0, 1),
         "joints": {
             "LeftForeArm": {
@@ -239,8 +223,7 @@ joints_config = {
         }
     },
     "LeftForeArm": {
-        "mass": 5,
-        "F_max": 2000.0,
+        "mass": 2,
         "axis": (0, 0, 1),
         "joints": {
             "LeftHand": {
@@ -252,8 +235,7 @@ joints_config = {
     # Right Arm
 
     "RightShoulder": {
-        "mass": 20,
-        "F_max": 40000.0,
+        "mass": 1,
         "axis": (0, 0, 1),
         "joints": {
             "RightArm": {
@@ -264,8 +246,7 @@ joints_config = {
         }
     },
     "RightArm": {
-        "mass": 10,
-        "F_max": 4000.0,
+        "mass": 2,
         "axis": (0, 0, 1),
         "joints": {
             "RightForeArm": {
@@ -276,8 +257,7 @@ joints_config = {
         }
     },
     "RightForeArm": {
-        "mass": 5,
-        "F_max": 2000.0,
+        "mass": 2,
         "axis": (0, 0, 1),
         "joints": {
             "RightHand": {

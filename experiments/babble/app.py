@@ -36,24 +36,25 @@ class App(ShowBase):
         self.createLighting()
 
         if not headless:
-            self.setupCamera(width, height, Vec3(0, -200, 0), Vec3(0, 0, 0))
+            self.setupCamera(width, height, Vec3(0, -20, 0), Vec3(0, 0, 0))
 
         self.world = BulletWorld()
-        self.world.setGravity(Vec3(0, 0, -9.81 * 100.0))
-        # self.world.setGravity(Vec3(0, 0, 0))
+        self.world.setGravity(Vec3(0, 0, -9.81))
         self.setupDebug()
-        self.createPlane(Vec3(0, 0, -100))
+        self.createPlane(Vec3(0, 0, -11))
 
         self.animated_rig = ExposedJointRig('walking', { 'walk': 'walking-animation.egg' })
         self.animated_rig.reparentTo(self.render)
         self.animated_rig.setPos(0, 0, 0)
-        # self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
+        self.animated_rig.setScale(0.1, 0.1, 0.1)
+        self.animated_rig.createLines(VBase4(0.5, 0.75, 1.0, 1.0))
 
         self.physical_rig = RigidBodyRig()
         self.physical_rig.reparentTo(self.render)
         self.physical_rig.setPos(0, 0, 0)
+        self.physical_rig.setScale(0.1, 0.1, 0.1)
         self.physical_rig.createColliders(self.animated_rig)
-        self.physical_rig.createConstraints()
+        self.physical_rig.createConstraints(offset_scale=0.1)
         self.physical_rig.setCollideMask(BitMask32.bit(1))
         self.physical_rig.attachRigidBodies(self.world)
         self.physical_rig.attachConstraints(self.world)
@@ -119,7 +120,7 @@ class App(ShowBase):
         light.setColor(VBase4(0.2, 0.2, 0.2, 1))
 
         np = self.render.attachNewNode(light)
-        np.setPos(0, -200, 0)
+        np.setPos(10, -10, 20)
         np.lookAt(0, 0, 0)
 
         self.render.setLight(np)
@@ -132,11 +133,11 @@ class App(ShowBase):
         self.render.setLight(np)
 
     def createPlane(self, pos):
-        rb = BulletRigidBodyNode('Ground')
+        rb = BulletRigidBodyNode('plane')
         rb.addShape(BulletPlaneShape(Vec3(0, 0, 1), 1))
         rb.setFriction(1.0)
         rb.setAnisotropicFriction(1.0)
-        rb.setRestitution(0.0)
+        rb.setRestitution(1.0)
 
         np = self.render.attachNewNode(rb)
         np.setPos(pos)
@@ -191,11 +192,11 @@ class App(ShowBase):
         return X, Y
 
     def update(self, task):
-        # if globalClock.getFrameCount() % 100 == 0:
-        #     self.setAnimationFrame(globalClock.getFrameCount() / 100)
+        # if globalClock.getFrameCount() % self.babble_count == 0:
+        #     self.setAnimationFrame(globalClock.getFrameCount() / self.babble_count)
         # self.physical_rig.babble()
-        # self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
-        # return task.cont
+        self.world.doPhysics(globalClock.getDt(), 10, 1.0 / 180.0)
+        return task.cont
 
         curr_train_count = len(self.X_train)
         curr_test_count = len(self.X_test)

@@ -2,8 +2,8 @@ from panda3d.core import VBase4, Vec3, TransformState, LineSegs
 
 class Muscle:
 
-    def __init__(self, F_max):
-        self.F_max = F_max
+    def __init__(self, max_force):
+        self.max_force = max_force
 
     def drawLineSeg(self, loader, parent, start, end):
         lines = LineSegs()
@@ -54,8 +54,8 @@ class Muscle:
         r = v.cross(d)
         return r
 
-    def apply(self, u):
-        F = u * self.F_max
+    def apply(self, activation):
+        F = activation * self.max_force
         r = self.getMomentArm()
 
         self.applyTorque(self.a, +F, r)
